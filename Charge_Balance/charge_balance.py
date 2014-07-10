@@ -85,7 +85,7 @@ for i in range(len(cb)):
             arcpy.AddMessage('K created to make correct balance for station %s' %stid[i] )
         else:
             arcpy.AddMessage('No missing cations to make correct balance for station %s' %stid[i] )
-    elif cb[i]<0:
+    elif cb[i]>0:
         if SO4[i]==0 and (Cl[i] <> 0 and HCO3[i] <> 0):
             SO4[i]=abs(cat[i]-an[i])/d['SO4']
             arcpy.AddMessage('SO4 created to make correct balance for station %s' %stid[i] )
