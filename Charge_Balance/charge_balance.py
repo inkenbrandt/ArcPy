@@ -95,9 +95,9 @@ for i in range(len(cb)):
         elif HCO3[i]==0 and (SO4[i] <> 0 and Cl[i] <> 0):
             HCO3[i]=abs(cat[i]-an[i])/d['HCO3']
             arcpy.AddMessage('HCO3 created to make correct balance for station %s' %stid[i] )
-        elif CO3[i]<>0 and (HCO3[i]<>0 and SO4[i] <> 0 and Cl[i] <> 0):
-            CO3[i]=abs(cat[i]-an[i])/d['CO3']
-            arcpy.AddMessage('CO3 created to make correct balance for station %s' %stid[i] )
+        #elif CO3[i]==0 and (HCO3[i]<>0 and SO4[i] <> 0 and Cl[i] <> 0):
+        #    CO3[i]=abs(cat[i]-an[i])/d['CO3']
+        #    arcpy.AddMessage('CO3 created to make correct balance for station %s' %stid[i] )
         else:
             arcpy.AddMessage('No missing anions to make correct balance for station %s' %stid[i])
     else:
