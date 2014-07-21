@@ -1,7 +1,6 @@
-# -*- coding: utf-8 -*-
+
 """
 Created on Thu Jul 03 12:39:03 2014
-
 @author: paulinkenbrandt
 """
 
@@ -11,22 +10,18 @@ import os
 
 infile = arcpy.GetParameterAsText(0)
 
-
-
 arcpy.AddField_management(infile,'ParamSht',field_type = 'TEXT', field_length = 10)
 
 temptb = arcpy.env.scratchGDB + os.path.sep + "temptb"
 temptb1 = arcpy.env.scratchGDB + os.path.sep + "temptb1"
 temptb2 = arcpy.env.scratchGDB + os.path.sep + "temptb2"
 
-arcpy.TableSelect_analysis(infile, temptb, '"Param" in(\'Sulfate\', \'Nitrate\', \'Nitrite\', \'Calcium\', \'Potassium\', \'Sodium\',\'Magnesium\', \'Sodium plus potassium\', \'Bicarbonate\', \'Carbonate\', \'Chloride\')')
-
-
+arcpy.TableSelect_analysis(infile, temptb, '"Param" in(\'Sulfate\', \'Nitrate\', \'Nitrite\', \'Calcium\', \'Potassium\', \'Sodium\',\'Magnesium\', \'Sodium plus potassium\', \'Bicarbonate\', \'Carbonate\', \'Chloride\', \'Conductivity\', \'pH\', \'pH, lab\', \'Temperature, water\', \'Specific Conductance\',\'Total dissolved solids\')')
 
 expression = "getChem(!Param!)"
 codeblock = '''
 def getChem(p):
-    chemdict = {'Sulfate':'SO4', 'Nitrate':'NO3','Magnesium':'Mg', 'Nitrite':'NO2', 'Calcium':'Ca', 'Potassium':'K', 'Sodium':'Na', 'Sodium plus potassium':'NaK', 'Bicarbonate':'HCO3', 'Carbonate':'CO3', 'Chloride':'Cl'}    
+    chemdict = {'Ammonia-nitrogen as N':'N','Inorganic nitrogen (nitrate and nitrite) as N':'N','Inorganic nitrogen (nitrate and nitrite)':'N','Kjeldahl nitrogen':'N','Total dissolved solids':'TDS','Sulfate as SO4':'SO4','pH, lab':'pH','Temperature, water':'Temp_C','Arsenic':'As','Bromide':'Br','Carbon dioxide':'CO2', 'Specific Conductance':'Cond','Conductivity':'Cond', 'Sulfate':'SO4', 'Nitrate':'NO3', 'Nitrite':'NO2','Magnesium':'Mg', 'Calcium':'Ca', 'Potassium':'K', 'Sodium':'Na', 'Sodium plus potassium':'NaK', 'Bicarbonate':'HCO3', 'Carbonate':'CO3', 'Chloride':'Cl'}  
     return chemdict.get(p)
     '''
 
@@ -38,7 +33,7 @@ valueFieldName = "ResultValue"
 out = arcpy.GetParameterAsText(1)
 
 arcpy.PivotTable_management(temptb, 'SampleId','ParamSht','ResultValue',temptb1)
-arr = arcpy.da.TableToNumPyArray(temptb1, ('SampleId','Cl', 'HCO3','CO3', 'SO4','Na','NaK','K','Ca','Mg','NO3'), null_value='')
+arr = arcpy.da.TableToNumPyArray(temptb1, ('SampleId','Cl', 'HCO3','CO3', 'SO4','Na','NaK','K','Ca','Mg','NO3', 'Temp_C', 'pH', 'Cond', 'TDS' ), null_value='')
 arcpy.Delete_management(temptb)
 
 
