@@ -45,6 +45,18 @@ NaK = np.array([Na[i]+K[i] for i in range(nosamp)])
 SO4 = arr['SO4']
 NO3 = arr['NO3']
 
+# Convert to meq/L and assign to variables
+Cl_meq = np.array([arr['Cl'][i]*d['Cl'] for i in range(nosamp)])
+Mg_meq = np.array([arr['Mg'][i]*d['Mg'] for i in range(nosamp)])
+K_meq = np.array([arr['K'][i]*d['K'] for i in range(nosamp)])
+Ca_meq = np.array([arr['Ca'][i]*d['Ca'] for i in range(nosamp)])
+Na_meq = np.array([arr['Na'][i]*d['Na'] for i in range(nosamp)])
+HCO3_meq = np.array([arr['HCO3'][i]*d['HCO3'] for i in range(nosamp)])
+CO3_meq = np.array([arr['CO3'][i]*d['CO3'] for i in range(nosamp)])
+NaK_meq = np.array([Na_meq[i]+K_meq[i] for i in range(nosamp)])
+SO4_meq = np.array([arr['SO4'][i]*d['SO4'] for i in range(nosamp)])
+NO3_meq = np.array([arr['NO3'][i]*d['NO3'] for i in range(nosamp)])
+
 # field having unique station identifier
 stid = arr[arcpy.GetParameterAsText(1)]
 
@@ -54,16 +66,18 @@ NO2 = [0]*nosamp
 
 #calculate charge balance for each sample
 cb = np.array([chrgbal(Ca[i],Mg[i],Na[i],K[i],Cl[i],HCO3[i],CO3[i],SO4[i],NO3[i],NO2[i])[0] for i in range(nosamp)])
-# calculate anion total
+anion = np.array([chrgbal(Ca[i],Mg[i],Na[i],K[i],Cl[i],HCO3[i],CO3[i],SO4[i],NO3[i],NO2[i])[2] for i in range(nosamp)])
+cation = np.array([chrgbal(Ca[i],Mg[i],Na[i],K[i],Cl[i],HCO3[i],CO3[i],SO4[i],NO3[i],NO2[i])[1] for i in range(nosamp)])
+
 
 
 #define field order to add to table
-fields = [cb,stid]
+fields = [Cl_meq, Mg_meq, K_meq, Ca_meq, Na_meq, HCO3_meq, CO3_meq, NaK_meq, SO4_meq, NO3_meq, anion, cation, cb, stid]
 #transpose array from columns to rows for proper tool input
 inay = zip(*fields)
 
 # define field names and data types for the array
-dts = {'names': ('chargebal','stid1'), 'formats' : (np.float64,'|S256')}
+dts = {'names': ('chargebal','stid1'), 'formats' : (np.float64, np.float64, np.float64, np.float64, np.float64, np.float64, np.float64, np.float64, np.float64, np.float64, np.float64, np.float64,'|S256')}
 inarray = np.rec.fromrecords(inay,dtype = dts)
 
 # add fields to existing table by joining using the unique station id
