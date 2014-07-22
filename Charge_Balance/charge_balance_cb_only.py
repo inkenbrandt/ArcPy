@@ -15,7 +15,7 @@ infile = arcpy.GetParameterAsText(0)
 stid = arcpy.GetParameterAsText(1)
 
 # function to calculate charge balance
-# {'sodium': 'Na', 'potassium': 'K', 'bicarbonate': 'HCO3', 'carbonate': 'CO3', 'sulfate': 'SO4', 'nitrite': 'NO2', 'calcium': 'Ca', 'magnesium': 'Mg', 'nitrate': 'NO3', 'Chloride': 'Cl'}
+# {'sodium': 'Na', 'potassium': 'K', 'bicarbonate': 'HCO3', 'carbonate': 'CO3', 'sulfate': 'SO4', 'nitrite': 'NO2', 'calcium': 'Ca', 'magnesium': 'Mg', 'nitrate': 'NO3', 'chloride': 'Cl'}
 def chrgbal(Ca,Mg,Na,K,Cl,HCO3,CO3,SO4,NO3,NO2):
     # Multipliers to convert from mg/l to meq/l    
     d = {'Ca':0.04990269, 'Mg':0.082287595, 'Na':0.043497608, 'K':0.02557656, 'Cl':0.028206596, 'HCO3':0.016388838, 'CO3':0.033328223, 'SO4':0.020833333, 'NO2':0.021736513, 'NO3':0.016129032}
