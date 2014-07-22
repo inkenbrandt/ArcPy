@@ -19,7 +19,7 @@ def chrgbal(Ca,Mg,Na,K,Cl,HCO3,CO3,SO4,NO3,NO2):
     # Multipliers to convert from mg/l to meq/l    
     d = {'Ca':0.04990269, 'Mg':0.082287595, 'Na':0.043497608, 'K':0.02557656, 'Cl':0.028206596, 'HCO3':0.016388838, 'CO3':0.033328223, 'SO4':0.020833333, 'NO2':0.021736513, 'NO3':0.016129032}
     cation = d['Ca']*Ca + d['Mg']*Mg + d['Na']*Na + d['K']*K
-    anion = d['Cl']*Cl + d['HCO3']*HCO3 + d['CO3']*CO3 + d['SO4']*SO4 + d['NO3']+d['NO2']    
+    anion = d['Cl']*Cl + d['HCO3']*HCO3 + d['CO3']*CO3 + d['SO4']*SO4 + d['NO3']*NO3 +d['NO2']*NO2    
     bal = (cation-anion)/(cation + anion)*100
     return round(bal,2), cation, anion
    
