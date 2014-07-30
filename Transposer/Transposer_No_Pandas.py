@@ -348,7 +348,8 @@ arcpy.TableSelect_analysis(infile, temptb, '"ParamSht" IS NOT NULL')
 arcarray = arcpy.da.TableToNumPyArray(temptb, 'ParamSht')
 parameters = arcarray['ParamSht']
 fields = np.unique(parameters)
-fields = fields + np.array(['SampleId'])
+fields = fields.tolist()
+fields.append('SampleId')
 # Set a variable to store value field name
 valueFieldName = "ResultValue"
 out = arcpy.GetParameterAsText(1)
