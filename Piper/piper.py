@@ -12,10 +12,11 @@ Created on Thu May 29 10:57:49 2014
     B.M. van Breukelen <b.m.vanbreukelen@vu.nl>  
       
 """
-from pylab import * 
+#from pylab import * 
 import arcpy
 import matplotlib.colors as clrs
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.backends.backend_pdf import PdfPages
 
 
@@ -101,19 +102,19 @@ elif typ4 == '':
     typ4='None'    
     
 # Change default settings for figures
-rc('savefig', dpi = 300)
-rc('xtick', labelsize = 10)
-rc('ytick', labelsize = 10)
-rc('font', size = 12)
-rc('legend', fontsize = 12)
-rc('figure', figsize = (14,5.5)) # defines size of Figure window orig (14,4.5)
+plt.rc('savefig', dpi = 300)
+plt.rc('xtick', labelsize = 10)
+plt.rc('ytick', labelsize = 10)
+plt.rc('font', size = 12)
+plt.rc('legend', fontsize = 12)
+plt.rc('figure', figsize = (14,5.5)) # defines size of Figure window orig (14,4.5)
 
 markersize = 12
 linewidth = 2
-xtickpositions = linspace(0,100,6) # desired xtickpositions for graphs
+xtickpositions = np.linspace(0,100,6) # desired xtickpositions for graphs
 
 # Make Figure
-fig=figure()
+fig=plt.figure()
 # add title
 fig.suptitle(arcpy.GetParameterAsText(7), x=0.20,y=.98, fontsize=14 )
 # Colormap and Saving Options for Figure
@@ -155,37 +156,37 @@ ax1.set_ylim(0,100)
 ax1b.set_ylim(0,100)
 ax1.set_xlabel('<= Ca (% meq)')
 ax1b.set_ylabel('Mg (% meq) =>')
-setp(ax1, yticklabels=[])
+plt.setp(ax1, yticklabels=[])
 
 # next line needed to reverse x axis:
 ax1.set_xlim(ax1.get_xlim()[::-1]) 
 
 
 # ANIONS----------------------------------------------------------------------------
-subplot(1,3,3)
-fill([100,100,0,100],[0,100,100,0],color = (0.8,0.8,0.8))
-plot([0, 100],[100, 0],'k')
-plot([50, 50, 0, 50],[0, 50, 50, 0],'k--')
-text(55,15, 'Cl type')
-text(5,15, 'HCO3 type')
-text(5,65, 'SO4 type')
+plt.subplot(1,3,3)
+plt.fill([100,100,0,100],[0,100,100,0],color = (0.8,0.8,0.8))
+plt.plot([0, 100],[100, 0],'k')
+plt.plot([50, 50, 0, 50],[0, 50, 50, 0],'k--')
+plt.text(55,15, 'Cl type')
+plt.text(5,15, 'HCO3 type')
+plt.text(5,65, 'SO4 type')
 
 for i in range(nosamp):
     if typ1 in typ[i]:
-        scatter(100*Cl[i]/(EC[i]), 100*SO4[i]/(EC[i]),c=vart[i], cmap=cmap, norm =cNorm,marker='v')
+        plt.scatter(100*Cl[i]/(EC[i]), 100*SO4[i]/(EC[i]),c=vart[i], cmap=cmap, norm =cNorm,marker='v')
     if typ2 in typ[i]:
-        scatter(100*Cl[i]/(EC[i]), 100*SO4[i]/(EC[i]),c=vart[i], cmap=cmap, norm =cNorm,marker='^')
+        plt.scatter(100*Cl[i]/(EC[i]), 100*SO4[i]/(EC[i]),c=vart[i], cmap=cmap, norm =cNorm,marker='^')
     if typ3 in typ[i]:
-        scatter(100*Cl[i]/(EC[i]), 100*SO4[i]/(EC[i]),c=vart[i], cmap=cmap, norm =cNorm,marker='+')
+        plt.scatter(100*Cl[i]/(EC[i]), 100*SO4[i]/(EC[i]),c=vart[i], cmap=cmap, norm =cNorm,marker='+')
     if typ4 in typ[i]:
-        scatter(100*Cl[i]/(EC[i]), 100*SO4[i]/(EC[i]),c=vart[i], cmap=cmap, norm =cNorm,marker='s')
+        plt.scatter(100*Cl[i]/(EC[i]), 100*SO4[i]/(EC[i]),c=vart[i], cmap=cmap, norm =cNorm,marker='s')
     elif (typ1 not in typ[i]) and (typ2 not in typ[i]) and (typ3 not in typ[i]) and (typ4 not in typ[i]): 
-        scatter(100*Cl[i]/(EC[i]), 100*SO4[i]/(EC[i]),c=vart[i], cmap=cmap, norm =cNorm,marker='.')
+        plt.scatter(100*Cl[i]/(EC[i]), 100*SO4[i]/(EC[i]),c=vart[i], cmap=cmap, norm =cNorm,marker='.')
 
-xlim(0,100)
-ylim(0,100)
-xlabel('Cl (% meq) =>')
-ylabel('SO4 (% meq) =>')
+plt.xlim(0,100)
+plt.ylim(0,100)
+plt.xlabel('Cl (% meq) =>')
+plt.ylabel('SO4 (% meq) =>')
 
 
 # CATIONS AND ANIONS COMBINED ---------------------------------------------------------------
@@ -202,11 +203,11 @@ ax2.plot([90, 90],[0, 100],'k--')
 
 # designate variable for legend
 s = []
-hB, = plot(1,1,'v')
-hR, = plot(1,1,'^')
-hG, = plot(1,1,'+')
-hP, = plot(1,1,'s')
-hZ, = plot(1,1,'.')
+hB, = plt.plot(1,1,'v')
+hR, = plt.plot(1,1,'^')
+hG, = plt.plot(1,1,'+')
+hP, = plt.plot(1,1,'s')
+hZ, = plt.plot(1,1,'.')
 
 for i in range(nosamp):
     if typ1 in typ[i]:    
@@ -237,7 +238,7 @@ ax2b.set_ylim(0,100)
 ax2b.set_ylim(ax2b.get_ylim()[::-1])
 
 # Align plots
-subplots_adjust(left=0.05, bottom=0.35, right=0.95, top=0.90, wspace=0.4, hspace=0.0)         
+plt.subplots_adjust(left=0.05, bottom=0.35, right=0.95, top=0.90, wspace=0.4, hspace=0.0)         
 
 #Legend-----------------------------------------------------------------------------------------
 
@@ -266,12 +267,12 @@ b = [d[s[i]] for i in range(len(s))]
 
 if len(Elev)<>0:
     cax = fig.add_axes([0.25,0.10,0.50,0.02])    
-    cb1 = colorbar(cax=cax, cmap=cmap, norm=cNorm, orientation='horizontal') #use_gridspec=True
+    cb1 = plt.colorbar(cax=cax, cmap=cmap, norm=cNorm, orientation='horizontal') #use_gridspec=True
     cb1.set_label(arcpy.GetParameterAsText(1),size=8)
-    legend(s,b, loc='lower center', ncol=5, shadow=False, fancybox=True, bbox_to_anchor=(0.5, 0.6))
+    plt.legend(s,b, loc='lower center', ncol=5, shadow=False, fancybox=True, bbox_to_anchor=(0.5, 0.6))
 
 else:
-    legend(s,b, loc='lower center', ncol=5, shadow=False, fancybox=True, bbox_to_anchor=(0.5, -0.4))
+    plt.legend(s,b, loc='lower center', ncol=5, shadow=False, fancybox=True, bbox_to_anchor=(0.5, -0.4))
 
 
 
