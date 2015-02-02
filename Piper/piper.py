@@ -14,7 +14,6 @@ Created on Thu May 29 10:57:49 2014
 """
 #from pylab import * 
 import arcpy
-import matplotlib.colors as clrs
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.backends.backend_pdf import PdfPages
@@ -123,7 +122,7 @@ if len(Elev)>0:
     vart = Elev
 else:
     vart = [1]*nosamp
-cNorm  = clrs.Normalize(vmin=min(vart), vmax=max(vart))
+cNorm  = plt.Normalize(vmin=min(vart), vmax=max(vart))
 cmap = plt.cm.coolwarm
 pdf = PdfPages(arcpy.GetParameterAsText(8))
 
