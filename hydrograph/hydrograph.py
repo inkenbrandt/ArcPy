@@ -9,7 +9,10 @@ import datetime
 import matplotlib.colors as clrs
 
 
-input = "PIEZO.dbf"
+#scl= 5050
+scl = 15
+
+input = "U:\\GWP\\Inkenbrandt\\Hydrographs\\GSL.dbf"
 
 # field names must match input fields
 arr = arcpy.da.TableToNumPyArray(input, ('PiezoID','DateTIME','WaterDepth'), skip_nulls = True)
@@ -40,7 +43,9 @@ ymin = min(y)
 ymax = max(y)
 
 cNorm  = clrs.Normalize(vmin=min(z), vmax=max(z))
-cmap = plt.cm.jet
+
+
+cmap = plt.cm.RdYlBu
 
 
 g = df.groupby('piezo')
@@ -50,18 +55,18 @@ for name, group in g:
     y = group['year']
     z = group['wl']
     plt.figure()    
-    lines = plt.scatter(x,y,c=z ,marker = '|', cmap = cmap, norm = cNorm, s=5050)
+    lines = plt.scatter(x,y,c=z ,marker = '|', cmap = cmap, norm = cNorm, s=scl)
     plt.setp(lines, linewidth = 4.0)
     m=cm.ScalarMappable(cmap=cmap,norm=cNorm)
     m.set_array(z)
     cb1 = plt.colorbar(m) 
     cb1.set_label('Water Level (ft)',size=9)
     plt.title(name)    
-    plt.xlabel('month', size= 9)
-    plt.ylabel('year', size = 9)
+    plt.xlabel('month', size= 6)
+    plt.ylabel('year', size = 6)
     plt.xticks(arange(1,361,30), [1,2,3,4,5,6,7,8,9,10,11,12], rotation=30, size='x-small')
-    plt.yticks(arange(ymin,ymax+1,1),arange(ymin,ymax+1,1),size='x-small')
+    plt.yticks(arange(ymin,ymax+1,5),arange(ymin,ymax+1,5),size='x-small')
     plt.ylim(ymin-1,ymax+1)
     plt.xlim(xmin,xmax)
-    plt.savefig(name +".pdf",format='pdf')
+    plt.savefig("U:\\GWP\\Inkenbrandt\\Hydrographs\\"+ str(name)+"e" +".pdf",format='pdf')
     plt.close()
