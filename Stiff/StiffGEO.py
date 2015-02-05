@@ -23,7 +23,7 @@ path = os.getcwd()
 input = arcpy.GetParameterAsText(0)
 
 
-arr = arcpy.da.TableToNumPyArray(input, ('Cl', 'HCO3','CO3', 'SO4','Na','K','Ca','Mg','NO3','Cond','StationId',arcpy.GetParameterAsText(1), arcpy.GetParameterAsText(2)),null_value=0)
+arr = arcpy.da.TableToNumPyArray(input, ('Cl', 'HCO3', 'CO3', 'SO4', 'Na', 'K', 'Ca', 'Mg', 'NO3', 'Cond', 'StationId',arcpy.GetParameterAsText(1), arcpy.GetParameterAsText(2)),null_value=0)
 
 d = {'Ca':0.04990269, 'Mg':0.082287595, 'Na':0.043497608, 'K':0.02557656, 'Cl':0.028206596, 'HCO3':0.016388838, 'CO3':0.033328223, 'SO4':0.020833333, 'NO2':0.021736513, 'NO3':0.016129032}
 
