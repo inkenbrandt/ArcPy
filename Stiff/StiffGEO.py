@@ -17,12 +17,11 @@ import arcpy
 
 
 
-path = os.getcwd() 
-
+#path = os.getcwd() 
 
 input = arcpy.GetParameterAsText(0)
 
-
+# Convert values in table fields to numpy arrays
 arr = arcpy.da.TableToNumPyArray(input, ('Cl', 'HCO3', 'CO3', 'SO4', 'Na', 'K', 'Ca', 'Mg', 'NO3', 'Cond', 'StationId',arcpy.GetParameterAsText(1), arcpy.GetParameterAsText(2)),null_value=0)
 
 d = {'Ca':0.04990269, 'Mg':0.082287595, 'Na':0.043497608, 'K':0.02557656, 'Cl':0.028206596, 'HCO3':0.016388838, 'CO3':0.033328223, 'SO4':0.020833333, 'NO2':0.021736513, 'NO3':0.016129032}
@@ -30,13 +29,14 @@ d = {'Ca':0.04990269, 'Mg':0.082287595, 'Na':0.043497608, 'K':0.02557656, 'Cl':0
 x = arr[arcpy.GetParameterAsText(1)]
 y = arr[arcpy.GetParameterAsText(2)]
 m = float(arcpy.GetParameterAsText(3)) #multiplier
-c = float(arcpy.GetParameterAsText(4)) #coodinate type 
+
+spatialref = arcpy.GetParameterAsText(4)
 
 nosamp = len(arr['Cl']) # Determine number of samples in file
 
 
 # Column Index for parameters
-# Convert to meq/L
+# Convert ion concentrations in mg/L to meq/L
 Cl = [arr['Cl'][i]*d['Cl'] for i in range(nosamp)]
 Mg = [arr['Mg'][i]*d['Mg'] for i in range(nosamp)]
 K = [arr['K'][i]*d['K'] for i in range(nosamp)]
@@ -55,114 +55,78 @@ Anions = [Cl[i]+HCO3[i]+CO3[i]+SO4[i] for i in range(nosamp)]
 Cations = [K[i]+Mg[i]+Na[i]+Ca[i] for i in range(nosamp)]
 EC = [Anions[i]+Cations[i] for i in range(nosamp)]
 
+# Generate x coordinates for stiff leaders based on concentration of major ions
+## Cations
+xNaK = [-1*NaK[i]*m + float(x[i]) for i in range(nosamp)]
+xCa = [-1*Ca[i]*m + float(x[i]) for i in range(nosamp)]
+xMg = [-1*Mg[i]*m + float(x[i]) for i in range(nosamp)]
+## Anions
+xSO4 = [SO4[i]*m + float(x[i]) for i in range(nosamp)]
+xHCO3 = [HCO3[i]*m + float(x[i]) for i in range(nosamp)]
+xCl= [Cl[i]*m + float(x[i]) for i in range(nosamp)]
 
 
+# Generate x,y pairs; y coordinates for stiff leaders are independent of concentration
+xy1 = [[xNaK[i], 1*10*m + float(y[i]), 'NaK', NaK[i], StatId[i]] for i in range(nosamp)]
+xy2 = [[xCa[i], 0*10*m + float(y[i]), 'Ca', Ca[i], StatId[i]] for i in range(nosamp)]
+xy3 = [[xMg[i], -1*10*m + float(y[i]), 'Mg', Mg[i], StatId[i]] for i in range(nosamp)]
+xy4 = [[xSO4[i], -1*10*m + float(y[i]), 'SO4', SO4[i], StatId[i]] for i in range(nosamp)]
+xy5 = [[xHCO3[i], 0*10*m + float(y[i]), 'HCO3', HCO3[i], StatId[i]] for i in range(nosamp)]
+xy6 = [[xCl[i], 1*10*m + float(y[i]), 'Cl', Cl[i], StatId[i]] for i in range(nosamp)]
+xy7 = [[xNaK[i], 1*10*m + float(y[i]), 'NaK', NaK[i], StatId[i]] for i in range(nosamp)]
 
-xNaK = [-1*NaK[i]*c*m + float(x[i]) for i in range(nosamp)]
-xCa = [-1*Ca[i]*c*m + float(x[i]) for i in range(nosamp)]
-xMg = [-1*Mg[i]*c*m + float(x[i]) for i in range(nosamp)]
-xSO4 = [SO4[i]*c*m + float(x[i]) for i in range(nosamp)]
-xHCO3 = [HCO3[i]*c*m + float(x[i]) for i in range(nosamp)]
-xCl= [Cl[i]*c*m + float(x[i]) for i in range(nosamp)]
+# list coordinate pairs to construct features
+feature_info = [[xy6[i],xy5[i],xy4[i],xy3[i],xy2[i],xy1[i]] for i in range(nosamp)]
 
-cy = c*10
+#restructure arrays for a new table
+def unstack(stuff):
+    x,y,par,conc,stat=[],[],[],[],[]    
+    for i in stuff:
+        x.append(i[0])
+        y.append(i[1])
+        par.append(i[2])
+        conc.append(i[3])
+        stat.append(i[4])
+    stack = [x,y,par,conc,stat]
+    return stack
+a = unstack(xy1)
+b = unstack(xy2)
+c = unstack(xy3)
+d = unstack(xy4)
+e = unstack(xy5)
+f = unstack(xy6)
 
-xy1 = []
-xy2 = []
-xy3 = []
-xy4 = []
-xy5 = []
-xy6 = []
-xy7 = []
+axy,bxy,cxy,dxy,exy = [],[],[],[],[]
+varlist =[axy,bxy,cxy,dxy,exy]
+for i in range(len(a)):
+    varlist[i] = np.append(a[i],(b[i],c[i],d[i],e[i],f[i]))
+varlist = zip(*np.array(varlist))
+arcpy.AddMessage(len(varlist))
+# denote table field names and types
+dts = {'names':('xfield', 'yfield', 'chemcode', 'conc', 'StationId'), 'formats': (np.float32, np.float32, '|S256', '|S256', '|S256')}
 
-feature_info = []
-feature_info2 = []
-feature_info3 = []
+# join table data with table field names and types
+inarray = np.rec.fromrecords(varlist, dtype=dts)
 
-for i in range(nosamp):
-    xy1.append([xNaK[i], 1*cy*m + float(y[i])])
-    xy2.append([xCa[i], 0*cy*m + float(y[i])])
-    xy3.append([xMg[i], -1*cy*m + float(y[i])])
-    xy4.append([xSO4[i], -1*cy*m + float(y[i])])
-    xy5.append([xHCO3[i], 0*cy*m + float(y[i])])
-    xy6.append([xCl[i], 1*cy*m + float(y[i])]) 
-    xy7.append([xNaK[i], 1*cy*m + float(y[i])])
-    feature_info.append([xy6[i],xy5[i],xy4[i],xy3[i],xy2[i],xy1[i]])
+temptab = arcpy.env.scratchGDB + os.path.sep + "temptab1"
+templayer = arcpy.env.scratchGDB + os.path.sep + "templayers"
+arcpy.da.NumPyArrayToTable(inarray,temptab)
+arcpy.MakeXYEventLayer_management(temptab,"xfield","yfield",templayer,spatialref)
+points = arcpy.CopyFeatures_management(templayer, arcpy.GetParameterAsText(6))
+ 
+arcpy.Delete_management(temptab)
+arcpy.Delete_management(templayer)
+# get spatail ref from user
 
-    # A list of features and coordinate pairs
-    
-
-
-
-spatialref = arcpy.GetParameterAsText(5)
-    
-# A list that will hold each of the Polygon objects
-features = []
-
-featuresp = []
-featureln = []
-
-for feature in feature_info:
-    # Create a Polygon object based on the array of points
-    # Append to the list of Polygon objects
-    features.append(
-        arcpy.Polygon(
-            arcpy.Array([arcpy.Point(*coords) for coords in feature]),spatialref))
-
-
-pnt = arcpy.Point()
+ 
+# Create a Polygon object based on the array of points
+# Append to the list of Polygon objects
+polyFeatures = []
 for i in feature_info:
-    for j in range(len(i)):    
-        pnt.X = i[j][0]
-        pnt.Y = i[j][1]
-        featuresp.append(arcpy.PointGeometry(pnt,spatialref))
-#
-#ary = arcpy.Array()
-#
-#for feature in feature_info:
-#    for x,y in feature:
-#        pnt = arcpy.Point(x,y)        
-#        ary.add(pnt)
-#    features.append(arcpy.Polygon(ary,spatialref))
-
-# Persist a copy of the Polyline objects using CopyFeatures
-feature_class = arcpy.CopyFeatures_management(features, arcpy.GetParameterAsText(6))
+    pointSet = []    
+    for j in range(len(i)):
+        pointSet.append(arcpy.Point(X = i[j][0],Y = i[j][1]))
+    polyFeatures.append(arcpy.Polygon(arcpy.Array(pointSet),spatialref))
+polygons = arcpy.CopyFeatures_management(polyFeatures, arcpy.GetParameterAsText(5))
 
 
-
-arcpy.CopyFeatures_management(featuresp, arcpy.GetParameterAsText(7))
-#arcpy.CopyFeatures_management(featuresp, arcpy.GetParameterAsText(6))
-#    # Stiff plots with color depending on water type
-#    h1=fill(x, y, 'r')
-#    
-#    plot([0,0], [1,3],'b')
-#    
-#    # NO3 plotted as extra circle
-#    #h6=plot(5.*NO3[sID], 1, 'yo', ms=markersize)
-#    
-#    # SI Calcite plotted as extra square
-#    #h7=plot(2*obs[sID, 9], 2, 'ks', ms=markersize)
-#
-#    # Add legend at one selected stiff diagram    
-#    #if sID == 1:
-#    text(-4.5,2.9,'Na+K')
-#    text(-4.5,1.9,'Ca')
-#    text(-4.5,0.9,'Mg')
-#    text(2.5,2.9,'Cl')
-#    text(2.5,1.9,'HCO3')
-#    text(2.5,0.9,'SO4')
-#    xlabel('(meq/L)')
-#    xticks(xtickpositions)
-#    xticklabels=('5','3','1','0','-1','-3','-5')
-#    title("{s}\n{v}".format(s=StatId[sID],v=geo[sID]),size = 10)
-#    ylim(0.8, 3.2)
-#    xlim(-5.2, 5.2)
-#    xticks(xtickpositions)
-#    setp(gca(), yticks=[], yticklabels=[])
-#
-## adjust position subplots
-#subplots_adjust(left=0.05, bottom=0.1, right=0.95, top=0.95, wspace=0.2, hspace=0.30)
-#savefig(arcpy.GetParameterAsText(2))
-#
-#
-#close()
