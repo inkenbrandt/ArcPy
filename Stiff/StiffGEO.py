@@ -11,18 +11,19 @@
 """
 
 
-from pylab import * 
+#from pylab import * 
+import numpy as np
 import os
 import arcpy
-
-
+from arcpy import env
+env.workspace = "CURRENT"
 
 #path = os.getcwd() 
 
 input = arcpy.GetParameterAsText(0)
 
 # Convert values in table fields to numpy arrays
-arr = arcpy.da.TableToNumPyArray(input, ('Cl', 'HCO3', 'CO3', 'SO4', 'Na', 'K', 'Ca', 'Mg', 'NO3', 'Cond', 'StationId',arcpy.GetParameterAsText(1), arcpy.GetParameterAsText(2)),null_value=0)
+arr = arcpy.da.TableToNumPyArray(input, ('Cl', 'HCO3', 'CO3', 'SO4', 'Na', 'K', 'Ca', 'Mg', 'Cond', 'StationId',arcpy.GetParameterAsText(1), arcpy.GetParameterAsText(2)),null_value=0)
 
 d = {'Ca':0.04990269, 'Mg':0.082287595, 'Na':0.043497608, 'K':0.02557656, 'Cl':0.028206596, 'HCO3':0.016388838, 'CO3':0.033328223, 'SO4':0.020833333, 'NO2':0.021736513, 'NO3':0.016129032}
 
@@ -46,7 +47,7 @@ HCO3 = [arr['HCO3'][i]*d['HCO3'] for i in range(nosamp)]
 CO3 = [arr['CO3'][i]*d['CO3'] for i in range(nosamp)]
 NaK = [Na[i]+K[i] for i in range(nosamp)]
 SO4 = [arr['SO4'][i]*d['SO4'] for i in range(nosamp)]
-NO3 = [arr['NO3'][i]*d['NO3'] for i in range(nosamp)]
+
 
 StatId = arr['StationId']
 
@@ -108,15 +109,27 @@ dts = {'names':('xfield', 'yfield', 'chemcode', 'conc', 'StationId'), 'formats':
 # join table data with table field names and types
 inarray = np.rec.fromrecords(varlist, dtype=dts)
 
-temptab = arcpy.env.scratchGDB + os.path.sep + "temptab1"
+
+
+def getfilename(path):
+    # this function extracts the file name without file path or extension
+    return path.split('\\').pop().split('/').pop().rsplit('.', 1)[0]
+
+fileplace = arcpy.GetParameterAsText(5)
+pointspath = os.path.dirname(os.path.abspath(fileplace)) + '\\' + getfilename(fileplace) + "_points" + os.path.splitext(fileplace)[1]
+
+temptab = arcpy.env.scratchGDB + os.path.sep + "temptab3"
 templayer = arcpy.env.scratchGDB + os.path.sep + "templayers"
+
 arcpy.da.NumPyArrayToTable(inarray,temptab)
 arcpy.MakeXYEventLayer_management(temptab,"xfield","yfield",templayer,spatialref)
-points = arcpy.CopyFeatures_management(templayer, arcpy.GetParameterAsText(6))
- 
+points = arcpy.CopyFeatures_management(templayer, pointspath)
+
 arcpy.Delete_management(temptab)
 arcpy.Delete_management(templayer)
+
 # get spatail ref from user
+
 
  
 # Create a Polygon object based on the array of points
@@ -130,3 +143,50 @@ for i in feature_info:
 polygons = arcpy.CopyFeatures_management(polyFeatures, arcpy.GetParameterAsText(5))
 
 
+lineFeatures = []
+pointA = [[x[i], 1.1*10*m + float(y[i])] for i in range(nosamp)]
+pointB = [[x[i], -1.1*10*m + float(y[i])] for i in range(nosamp)]
+pointC = [[x[i]+5*m, 1.1*10*m + float(y[i])] for i in range(nosamp)]
+pointD = [[x[i]-5*m, 1.1*10*m + float(y[i])] for i in range(nosamp)]
+
+# list coordinate pairs to construct features
+lineFeatureVert_info = [[pointA[i],pointB[i]] for i in range(nosamp)]
+lineFeatureHor_info = [[pointC[i],pointD[i]] for i in range(nosamp)]
+for i in lineFeatureVert_info:
+    pointSet = []    
+    for j in range(len(i)):
+        pointSet.append(arcpy.Point(X = i[j][0],Y = i[j][1]))
+    lineFeatures.append(arcpy.Polyline(arcpy.Array(pointSet),spatialref))
+for i in lineFeatureHor_info:
+    pointSet = []    
+    for j in range(len(i)):
+        pointSet.append(arcpy.Point(X = i[j][0],Y = i[j][1]))
+    lineFeatures.append(arcpy.Polyline(arcpy.Array(pointSet),spatialref))
+    
+linespath = os.path.dirname(os.path.abspath(fileplace)) + '\\' + getfilename(fileplace) + "_lines" + os.path.splitext(fileplace)[1]
+polylines = arcpy.CopyFeatures_management(lineFeatures, linespath)
+
+
+
+# get the map document
+mxd = arcpy.mapping.MapDocument("CURRENT")
+
+# get the data frame
+df = arcpy.mapping.ListDataFrames(mxd)[0]
+
+layer = arcpy.mapping.Layer(linespath)
+layer1 = arcpy.mapping.Layer(pointspath)
+arcpy.mapping.AddLayer(df, layer, "AUTO_ARRANGE")
+arcpy.mapping.AddLayer(df, layer1, "AUTO_ARRANGE")
+arcpy.RefreshTOC()
+
+del mxd #, DF, Layer
+arcpy.Delete_management(layer)
+arcpy.Delete_management(layer1)
+
+'''
+Advanced Expression for labels (python):
+
+def FindLabel ( [chemcode], [conc]  ):
+  return [chemcode] + '\n' + str(round(float([conc]),1))
+'''  
