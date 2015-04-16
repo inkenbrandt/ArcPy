@@ -142,6 +142,18 @@ for i in feature_info:
     polyFeatures.append(arcpy.Polygon(arcpy.Array(pointSet),spatialref))
 polygons = arcpy.CopyFeatures_management(polyFeatures, arcpy.GetParameterAsText(5))
 
+# Set the local parameters
+inFeatures = polygons
+joinField = "FID"
+joinField2 = "OID"
+joinTable = arcpy.GetParameterAsText(0)
+fieldList = ["land_use", "land_cover"]
+
+# Join two feature classes by the zonecode field and only carry 
+# over the land use and land cover fields
+arcpy.JoinField_management (inFeatures, joinField, joinTable, joinField2)
+
+
 
 lineFeatures = []
 pointA = [[x[i], 1.1*10*m + float(y[i])] for i in range(nosamp)]
@@ -178,6 +190,7 @@ layer = arcpy.mapping.Layer(linespath)
 layer1 = arcpy.mapping.Layer(pointspath)
 arcpy.mapping.AddLayer(df, layer, "AUTO_ARRANGE")
 arcpy.mapping.AddLayer(df, layer1, "AUTO_ARRANGE")
+layer1.showLabels = True
 arcpy.RefreshTOC()
 
 del mxd #, DF, Layer
