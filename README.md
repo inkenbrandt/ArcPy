@@ -1,5 +1,4 @@
 #EPA Exchange Network
-=====
 
 These scripts were developed to acheive goal 3 of [US EPA Exchange Network] (http://www.exchangenetwork.net/) grant 83547901: *Improving Access to Utah Water Chemistry Data*.
 
