@@ -10,7 +10,6 @@
     @author: paulinkenbrandt
 """
 
-
 #from pylab import * 
 import numpy as np
 import os
@@ -20,36 +19,74 @@ env.workspace = "CURRENT"
 
 #path = os.getcwd() 
 
-input = arcpy.GetParameterAsText(0)
+resultstable = arcpy.GetParameterAsText(0)
+stationidfield = arcpy.GetParameterAsText(1)
+datefield = arcpy.GetParameterAsText(2)
+NaField = arcpy.GetParameterAsText(3)
+KField = arcpy.GetParameterAsText(4)
+CaField = arcpy.GetParameterAsText(5)
+MgField = arcpy.GetParameterAsText(6)
+ClField = arcpy.GetParameterAsText(7)
+HCO3Field = arcpy.GetParameterAsText(8)
+CO3Field = arcpy.GetParameterAsText(9)
+SO4Field = arcpy.GetParameterAsText(10)
+multiplier = arcpy.GetParameterAsText(11)
+fileplace = arcpy.GetParameterAsText(12)
+
+stationid, dt, Na, K, Ca, Mg, Cl, HCO3, CO3, SO4 = [],[],[],[],[],[],[],[],[],[]
+
+fieldlist = [stationidfield, datefield, NaField, KField, CaField, MgField, ClField, HCO3Field, CO3Field, SO4Field]
+fieldnames = [stationid, dt, Na, K, Ca, Mg, Cl, HCO3, CO3, SO4]
+
+    
 
 # Convert values in table fields to numpy arrays
-arr = arcpy.da.TableToNumPyArray(input, ('Cl', 'HCO3', 'CO3', 'SO4', 'Na', 'K', 'Ca', 'Mg', 'Cond', 'StationId',arcpy.GetParameterAsText(1), arcpy.GetParameterAsText(2)),null_value=0)
+# populate lists with values from the active table
+with arcpy.da.UpdateCursor(resultstable,[stationidfield, datefield, NaField, KField, CaField, MgField, ClField, HCO3Field, CO3Field, SO4Field]) as cursor:
+    for row in cursor:
+        stationid.append(row[0])
+        dt.append(row[1])
+        Na.append(row[2])
+        K.append(row[3])
+        Ca.append(row[4])
+        Mg.append(row[5])
+        Cl.append(row[6])
+        HCO3.append(row[7])
+        CO3.append(row[8])
+        SO4.append(row[9])
+        
+x, y = [],[]
+
+with arcpy.da.SearchCursor(resultstable, "SHAPE@XY") as cursor:
+    for row in cursor:
+        x.append(row[0][0])
+        y.append(row[0][1]) 
 
 d = {'Ca':0.04990269, 'Mg':0.082287595, 'Na':0.043497608, 'K':0.02557656, 'Cl':0.028206596, 'HCO3':0.016388838, 'CO3':0.033328223, 'SO4':0.020833333, 'NO2':0.021736513, 'NO3':0.016129032}
 
-x = arr[arcpy.GetParameterAsText(1)]
-y = arr[arcpy.GetParameterAsText(2)]
-m = float(arcpy.GetParameterAsText(3)) #multiplier
 
-spatialref = arcpy.GetParameterAsText(4)
+m = float(multiplier) #multiplier
 
-nosamp = len(arr['Cl']) # Determine number of samples in file
+desc = arcpy.Describe(resultstable)
+spatialref = desc.spatialReference 
+
+nosamp = len(Cl) # Determine number of samples in file
 
 
 # Column Index for parameters
 # Convert ion concentrations in mg/L to meq/L
-Cl = [arr['Cl'][i]*d['Cl'] for i in range(nosamp)]
-Mg = [arr['Mg'][i]*d['Mg'] for i in range(nosamp)]
-K = [arr['K'][i]*d['K'] for i in range(nosamp)]
-Ca = [arr['Ca'][i]*d['Ca'] for i in range(nosamp)]
-Na = [arr['Na'][i]*d['Na'] for i in range(nosamp)]
-HCO3 = [arr['HCO3'][i]*d['HCO3'] for i in range(nosamp)]
-CO3 = [arr['CO3'][i]*d['CO3'] for i in range(nosamp)]
+Cl = [Cl[i]*d['Cl'] for i in range(nosamp)]
+Mg = [Mg[i]*d['Mg'] for i in range(nosamp)]
+K = [K[i]*d['K'] for i in range(nosamp)]
+Ca = [Ca[i]*d['Ca'] for i in range(nosamp)]
+Na = [Na[i]*d['Na'] for i in range(nosamp)]
+HCO3 = [HCO3[i]*d['HCO3'] for i in range(nosamp)]
+CO3 = [CO3[i]*d['CO3'] for i in range(nosamp)]
 NaK = [Na[i]+K[i] for i in range(nosamp)]
-SO4 = [arr['SO4'][i]*d['SO4'] for i in range(nosamp)]
+SO4 = [SO4[i]*d['SO4'] for i in range(nosamp)]
 
 
-StatId = arr['StationId']
+StatId = stationid
 
 
 Anions = [Cl[i]+HCO3[i]+CO3[i]+SO4[i] for i in range(nosamp)]
@@ -115,10 +152,10 @@ def getfilename(path):
     # this function extracts the file name without file path or extension
     return path.split('\\').pop().split('/').pop().rsplit('.', 1)[0]
 
-fileplace = arcpy.GetParameterAsText(5)
+
 pointspath = os.path.dirname(os.path.abspath(fileplace)) + '\\' + getfilename(fileplace) + "_points" + os.path.splitext(fileplace)[1]
 
-temptab = arcpy.env.scratchGDB + os.path.sep + "temptab3"
+temptab = arcpy.env.scratchGDB + os.path.sep + "temptab4"
 templayer = arcpy.env.scratchGDB + os.path.sep + "templayers"
 
 arcpy.da.NumPyArrayToTable(inarray,temptab)
@@ -140,19 +177,18 @@ for i in feature_info:
     for j in range(len(i)):
         pointSet.append(arcpy.Point(X = i[j][0],Y = i[j][1]))
     polyFeatures.append(arcpy.Polygon(arcpy.Array(pointSet),spatialref))
-polygons = arcpy.CopyFeatures_management(polyFeatures, arcpy.GetParameterAsText(5))
+polygons = arcpy.CopyFeatures_management(polyFeatures, fileplace)
 
 # Set the local parameters
 inFeatures = polygons
-joinField = "FID"
-joinField2 = "OID"
-joinTable = arcpy.GetParameterAsText(0)
+joinField = arcpy.Describe(inFeatures).OIDFieldName
+joinField2 = arcpy.Describe(resultstable).OIDFieldName
 fieldList = ["land_use", "land_cover"]
 
 # Join two feature classes by the zonecode field and only carry 
 # over the land use and land cover fields
-arcpy.JoinField_management (inFeatures, joinField, joinTable, joinField2)
-
+arcpy.JoinField_management (inFeatures, joinField, resultstable, joinField2)
+#arcpy.JoinField_management (inFeatures, inFeatures.FID, joinTable, joinTable.FID)
 
 
 lineFeatures = []
