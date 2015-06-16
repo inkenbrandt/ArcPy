@@ -20,9 +20,11 @@ env.workspace = "CURRENT"
 #path = os.getcwd() 
 
 resultstable = arcpy.GetParameterAsText(0)
-stationidfield = arcpy.GetParameterAsText(1)
-multiplier = arcpy.GetParameterAsText(2)
-fileplace = arcpy.GetParameterAsText(3)
+meq = arcpy.GetParameterAsText(1)
+stationidfield = arcpy.GetParameterAsText(2)
+vmultiplier = arcpy.GetParameterAsText(3)
+hmultiplier = arcpy.GetParameterAsText(4)
+fileplace = arcpy.GetParameterAsText(5)
 
 stationid, dt, Na, K, Ca, Mg, Cl, HCO3, CO3, SO4 = [],[],[],[],[],[],[],[],[],[]
 
@@ -63,26 +65,29 @@ with arcpy.da.SearchCursor(resultstable, "SHAPE@XY") as cursor:
 d = {'Ca':0.04990269, 'Mg':0.082287595, 'Na':0.043497608, 'K':0.02557656, 'Cl':0.028206596, 'HCO3':0.016388838, 'CO3':0.033328223, 'SO4':0.020833333, 'NO2':0.021736513, 'NO3':0.016129032}
 
 
-m = float(multiplier) #multiplier
+mv = float(vmultiplier) #vertical multiplier
+mh = float(hmultiplier) #horizontal multiplier
 
 desc = arcpy.Describe(resultstable)
 spatialref = desc.spatialReference 
 
 nosamp = len(Cl) # Determine number of samples in file
 
+if str(meq) == 'True':
 
-# Column Index for parameters
-# Convert ion concentrations in mg/L to meq/L
-Cl = [Cl[i]*d['Cl'] for i in range(nosamp)]
-Mg = [Mg[i]*d['Mg'] for i in range(nosamp)]
-K = [K[i]*d['K'] for i in range(nosamp)]
-Ca = [Ca[i]*d['Ca'] for i in range(nosamp)]
-Na = [Na[i]*d['Na'] for i in range(nosamp)]
-HCO3 = [HCO3[i]*d['HCO3'] for i in range(nosamp)]
-CO3 = [CO3[i]*d['CO3'] for i in range(nosamp)]
-NaK = [Na[i]+K[i] for i in range(nosamp)]
-SO4 = [SO4[i]*d['SO4'] for i in range(nosamp)]
-
+    # Column Index for parameters
+    # Convert ion concentrations in mg/L to meq/L
+    Cl = [Cl[i]*d['Cl'] for i in range(nosamp)]
+    Mg = [Mg[i]*d['Mg'] for i in range(nosamp)]
+    K = [K[i]*d['K'] for i in range(nosamp)]
+    Ca = [Ca[i]*d['Ca'] for i in range(nosamp)]
+    Na = [Na[i]*d['Na'] for i in range(nosamp)]
+    HCO3 = [HCO3[i]*d['HCO3'] for i in range(nosamp)]
+    CO3 = [CO3[i]*d['CO3'] for i in range(nosamp)]
+    NaK = [Na[i]*d['Na']+K[i]*d['K'] for i in range(nosamp)]
+    SO4 = [SO4[i]*d['SO4'] for i in range(nosamp)]
+else:
+    NaK = [Na[i]+K[i] for i in range(nosamp)]
 
 StatId = stationid
 
@@ -93,23 +98,23 @@ EC = [Anions[i]+Cations[i] for i in range(nosamp)]
 
 # Generate x coordinates for stiff leaders based on concentration of major ions
 ## Cations
-xNaK = [-1*NaK[i]*m + float(x[i]) for i in range(nosamp)]
-xCa = [-1*Ca[i]*m + float(x[i]) for i in range(nosamp)]
-xMg = [-1*Mg[i]*m + float(x[i]) for i in range(nosamp)]
+xNaK = [-1*NaK[i]*mh + float(x[i]) for i in range(nosamp)]
+xCa = [-1*Ca[i]*mh + float(x[i]) for i in range(nosamp)]
+xMg = [-1*Mg[i]*mh + float(x[i]) for i in range(nosamp)]
 ## Anions
-xSO4 = [SO4[i]*m + float(x[i]) for i in range(nosamp)]
-xHCO3 = [HCO3[i]*m + float(x[i]) for i in range(nosamp)]
-xCl= [Cl[i]*m + float(x[i]) for i in range(nosamp)]
+xSO4 = [SO4[i]*mh + float(x[i]) for i in range(nosamp)]
+xHCO3 = [HCO3[i]*mh + float(x[i]) for i in range(nosamp)]
+xCl= [Cl[i]*mh + float(x[i]) for i in range(nosamp)]
 
 
 # Generate x,y pairs; y coordinates for stiff leaders are independent of concentration
-xy1 = [[xNaK[i], 1*10*m + float(y[i]), 'NaK', NaK[i], StatId[i]] for i in range(nosamp)]
-xy2 = [[xCa[i], 0*10*m + float(y[i]), 'Ca', Ca[i], StatId[i]] for i in range(nosamp)]
-xy3 = [[xMg[i], -1*10*m + float(y[i]), 'Mg', Mg[i], StatId[i]] for i in range(nosamp)]
-xy4 = [[xSO4[i], -1*10*m + float(y[i]), 'SO4', SO4[i], StatId[i]] for i in range(nosamp)]
-xy5 = [[xHCO3[i], 0*10*m + float(y[i]), 'HCO3', HCO3[i], StatId[i]] for i in range(nosamp)]
-xy6 = [[xCl[i], 1*10*m + float(y[i]), 'Cl', Cl[i], StatId[i]] for i in range(nosamp)]
-xy7 = [[xNaK[i], 1*10*m + float(y[i]), 'NaK', NaK[i], StatId[i]] for i in range(nosamp)]
+xy1 = [[xNaK[i], 1*10*mv + float(y[i]), 'NaK', NaK[i], StatId[i]] for i in range(nosamp)]
+xy2 = [[xCa[i], 0*10*mv + float(y[i]), 'Ca', Ca[i], StatId[i]] for i in range(nosamp)]
+xy3 = [[xMg[i], -1*10*mv + float(y[i]), 'Mg', Mg[i], StatId[i]] for i in range(nosamp)]
+xy4 = [[xSO4[i], -1*10*mv + float(y[i]), 'SO4', SO4[i], StatId[i]] for i in range(nosamp)]
+xy5 = [[xHCO3[i], 0*10*mv + float(y[i]), 'HCO3', HCO3[i], StatId[i]] for i in range(nosamp)]
+xy6 = [[xCl[i], 1*10*mv + float(y[i]), 'Cl', Cl[i], StatId[i]] for i in range(nosamp)]
+xy7 = [[xNaK[i], 1*10*mv + float(y[i]), 'NaK', NaK[i], StatId[i]] for i in range(nosamp)]
 
 # list coordinate pairs to construct features
 feature_info = [[xy6[i],xy5[i],xy4[i],xy3[i],xy2[i],xy1[i]] for i in range(nosamp)]
@@ -125,6 +130,7 @@ def unstack(stuff):
         stat.append(i[4])
     stack = [x,y,par,conc,stat]
     return stack
+    
 a = unstack(xy1)
 b = unstack(xy2)
 c = unstack(xy3)
@@ -152,7 +158,7 @@ def getfilename(path):
 
 pointspath = os.path.dirname(os.path.abspath(fileplace)) + '\\' + getfilename(fileplace) + "_points" + os.path.splitext(fileplace)[1]
 
-temptab = arcpy.env.scratchGDB + os.path.sep + "temptab4"
+temptab = arcpy.env.scratchGDB + os.path.sep + "temptab6"
 templayer = arcpy.env.scratchGDB + os.path.sep + "templayers"
 
 arcpy.da.NumPyArrayToTable(inarray,temptab)
@@ -182,17 +188,16 @@ joinField = arcpy.Describe(inFeatures).OIDFieldName
 joinField2 = arcpy.Describe(resultstable).OIDFieldName
 fieldList = ["land_use", "land_cover"]
 
-# Join two feature classes by the zonecode field and only carry 
-# over the land use and land cover fields
+# Join two feature classes by the OID field and only carry 
 arcpy.JoinField_management (inFeatures, joinField, resultstable, joinField2)
-#arcpy.JoinField_management (inFeatures, inFeatures.FID, joinTable, joinTable.FID)
 
 
+# create a reference bar for the diagrams
 lineFeatures = []
-pointA = [[x[i], 1.1*10*m + float(y[i])] for i in range(nosamp)]
-pointB = [[x[i], -1.1*10*m + float(y[i])] for i in range(nosamp)]
-pointC = [[x[i]+5*m, 1.1*10*m + float(y[i])] for i in range(nosamp)]
-pointD = [[x[i]-5*m, 1.1*10*m + float(y[i])] for i in range(nosamp)]
+pointA = [[x[i], 1.1*10*mv + float(y[i])] for i in range(nosamp)]
+pointB = [[x[i], -1.1*10*mv + float(y[i])] for i in range(nosamp)]
+pointC = [[x[i]+5*mh, 1.1*10*mv + float(y[i])] for i in range(nosamp)]
+pointD = [[x[i]-5*mh, 1.1*10*mv + float(y[i])] for i in range(nosamp)]
 
 # list coordinate pairs to construct features
 lineFeatureVert_info = [[pointA[i],pointB[i]] for i in range(nosamp)]
@@ -212,7 +217,33 @@ linespath = os.path.dirname(os.path.abspath(fileplace)) + '\\' + getfilename(fil
 polylines = arcpy.CopyFeatures_management(lineFeatures, linespath)
 
 
+# Create Label Points for Labeling the Scale Bar
+lab5 = [[x[i]+ 5*mh, 1.1*10*mv + float(y[i]), 5] for i in range(nosamp)]
+lab4 = [[x[i]+ 4*mh, 1.1*10*mv + float(y[i]), 4] for i in range(nosamp)]
+lab3 = [[x[i]+ 3*mh, 1.1*10*mv + float(y[i]), 3] for i in range(nosamp)]
+lab2 = [[x[i]+ 2*mh, 1.1*10*mv + float(y[i]), 2] for i in range(nosamp)]
+lab1 = [[x[i]+ 1*mh, 1.1*10*mv + float(y[i]), 1] for i in range(nosamp)]
+lab0 =  [[x[i]-0*mh, 1.1*10*mv + float(y[i]), 0] for i in range(nosamp)]
+lab1n = [[x[i]-1*mh, 1.1*10*mv + float(y[i]), -1] for i in range(nosamp)]
+lab2n = [[x[i]-2*mh, 1.1*10*mv + float(y[i]), -2] for i in range(nosamp)]
+lab3n = [[x[i]-3*mh, 1.1*10*mv + float(y[i]), -3] for i in range(nosamp)]
+lab4n = [[x[i]-4*mh, 1.1*10*mv + float(y[i]), -4] for i in range(nosamp)]
+lab5n = [[x[i]-5*mh, 1.1*10*mv + float(y[i]), -5] for i in range(nosamp)]
 
+barLabels = [[lab5[i], lab4[i], lab3[i], lab2[i], lab1[i], lab0[i], lab1n[i], lab2n[i], lab3n[i], lab4n[i], lab5n[i]] for i in range(nosamp)]
+
+labelpointspath = os.path.dirname(os.path.abspath(fileplace))
+labelpointsname = getfilename(fileplace) + "_lbpnts" + os.path.splitext(fileplace)[1]
+
+sclpnts = arcpy.CreateFeatureclass_management(labelpointspath,labelpointsname,"POINT",points, "DISABLED","DISABLED", spatialref)
+
+cursor = arcpy.da.InsertCursor(sclpnts,['SHAPE@X','SHAPE@Y','conc'])
+
+for i in barLabels:
+    for j in range(len(i)):
+        cursor.insertRow([i[j][0],i[j][1],i[j][2]])
+
+del cursor
 # get the map document
 mxd = arcpy.mapping.MapDocument("CURRENT")
 
@@ -221,8 +252,10 @@ df = arcpy.mapping.ListDataFrames(mxd)[0]
 
 layer = arcpy.mapping.Layer(linespath)
 layer1 = arcpy.mapping.Layer(pointspath)
+layer2 = arcpy.mapping.Layer(labelpointspath+"\\"+labelpointsname)
 arcpy.mapping.AddLayer(df, layer, "AUTO_ARRANGE")
 arcpy.mapping.AddLayer(df, layer1, "AUTO_ARRANGE")
+arcpy.mapping.AddLayer(df, layer2, "AUTO_ARRANGE")
 
 
 arcpy.Delete_management(layer)
