@@ -21,39 +21,37 @@ env.workspace = "CURRENT"
 
 resultstable = arcpy.GetParameterAsText(0)
 stationidfield = arcpy.GetParameterAsText(1)
-datefield = arcpy.GetParameterAsText(2)
-NaField = arcpy.GetParameterAsText(3)
-KField = arcpy.GetParameterAsText(4)
-CaField = arcpy.GetParameterAsText(5)
-MgField = arcpy.GetParameterAsText(6)
-ClField = arcpy.GetParameterAsText(7)
-HCO3Field = arcpy.GetParameterAsText(8)
-CO3Field = arcpy.GetParameterAsText(9)
-SO4Field = arcpy.GetParameterAsText(10)
-multiplier = arcpy.GetParameterAsText(11)
-fileplace = arcpy.GetParameterAsText(12)
+multiplier = arcpy.GetParameterAsText(2)
+fileplace = arcpy.GetParameterAsText(3)
 
 stationid, dt, Na, K, Ca, Mg, Cl, HCO3, CO3, SO4 = [],[],[],[],[],[],[],[],[],[]
 
-fieldlist = [stationidfield, datefield, NaField, KField, CaField, MgField, ClField, HCO3Field, CO3Field, SO4Field]
-fieldnames = [stationid, dt, Na, K, Ca, Mg, Cl, HCO3, CO3, SO4]
+fieldnames = [u'Na', u'K', u'Ca', u'Mg', u'Cl', u'HCO3', u'CO3', u'SO4']
 
-    
+fieldlist = [f.name for f in arcpy.ListFields(resultstable)]
+
+for field in fieldnames: #loop through each field
+    if field not in fieldlist:
+        arcpy.AddMessage(field + 'not one of the columns, adding field' )
+        arcpy.AddField_management(resultstable, field, "FLOAT", 6, "", "", field, "NULLABLE")
+        with arcpy.da.UpdateCursor(resultstable,[field]) as cursor:
+            for row in cursor:
+                row[0] = 0
+            cursor.updateRow(row)
 
 # Convert values in table fields to numpy arrays
 # populate lists with values from the active table
-with arcpy.da.UpdateCursor(resultstable,[stationidfield, datefield, NaField, KField, CaField, MgField, ClField, HCO3Field, CO3Field, SO4Field]) as cursor:
+with arcpy.da.UpdateCursor(resultstable,[stationidfield, 'Na', 'K', 'Ca', 'Mg', 'Cl', 'HCO3', 'CO3', 'SO4']) as cursor:
     for row in cursor:
         stationid.append(row[0])
-        dt.append(row[1])
-        Na.append(row[2])
-        K.append(row[3])
-        Ca.append(row[4])
-        Mg.append(row[5])
-        Cl.append(row[6])
-        HCO3.append(row[7])
-        CO3.append(row[8])
-        SO4.append(row[9])
+        Na.append(row[1])
+        K.append(row[2])
+        Ca.append(row[3])
+        Mg.append(row[4])
+        Cl.append(row[5])
+        HCO3.append(row[6])
+        CO3.append(row[7])
+        SO4.append(row[8])
         
 x, y = [],[]
 
@@ -139,13 +137,12 @@ varlist =[axy,bxy,cxy,dxy,exy]
 for i in range(len(a)):
     varlist[i] = np.append(a[i],(b[i],c[i],d[i],e[i],f[i]))
 varlist = zip(*np.array(varlist))
-arcpy.AddMessage(len(varlist))
+arcpy.AddMessage(str(len(varlist)) + " Features Plotted" )
 # denote table field names and types
 dts = {'names':('xfield', 'yfield', 'chemcode', 'conc', 'StationId'), 'formats': (np.float32, np.float32, '|S256', '|S256', '|S256')}
 
 # join table data with table field names and types
 inarray = np.rec.fromrecords(varlist, dtype=dts)
-
 
 
 def getfilename(path):
@@ -227,9 +224,7 @@ layer1 = arcpy.mapping.Layer(pointspath)
 arcpy.mapping.AddLayer(df, layer, "AUTO_ARRANGE")
 arcpy.mapping.AddLayer(df, layer1, "AUTO_ARRANGE")
 
-arcpy.RefreshTOC()
 
-del mxd #, DF, Layer
 arcpy.Delete_management(layer)
 arcpy.Delete_management(layer1)
 
