@@ -90,8 +90,10 @@ if str(meq) == 'true':
     CO3 = [CO3[i]*d['CO3'] for i in range(nosamp)]
     NaK = [Na[i]+K[i] for i in range(nosamp)] #Already Converted above
     SO4 = [SO4[i]*d['SO4'] for i in range(nosamp)]
+    arcpy.AddMessage('Converting from mgL')
 else:
     NaK = [Na[i]+K[i] for i in range(nosamp)]
+    arcpy.AddMessage('No conversion')
 
 #Sum Anions and Cations to determine charge balance
 Anions = [Cl[i]+HCO3[i]+CO3[i]+SO4[i] for i in range(nosamp)]
