@@ -88,7 +88,7 @@ if str(meq) == 'true':
     Na = [Na[i]*d['Na'] for i in range(nosamp)]
     HCO3 = [HCO3[i]*d['HCO3'] for i in range(nosamp)]
     CO3 = [CO3[i]*d['CO3'] for i in range(nosamp)]
-    NaK = [Na[i]*d['Na']+K[i]*d['K'] for i in range(nosamp)]
+    NaK = [Na[i]+K[i] for i in range(nosamp)] #Already Converted above
     SO4 = [SO4[i]*d['SO4'] for i in range(nosamp)]
 else:
     NaK = [Na[i]+K[i] for i in range(nosamp)]
