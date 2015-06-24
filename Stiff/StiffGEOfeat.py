@@ -148,10 +148,10 @@ axy,bxy,cxy,dxy,exy = [],[],[],[],[]
 varlist =[axy,bxy,cxy,dxy,exy]
 for i in range(len(a)):
     varlist[i] = np.append(a[i],(b[i],c[i],d[i],e[i],f[i]))
-varlist = list(zip(*np.array(varlist)))
+varlist = (zip(*np.array(varlist)))
 
 
-arcpy.AddMessage(str(len(varlist)) + " Features Plotted" )
+arcpy.AddMessage(str(len(varlist)))
 
 # denote table field names and types
 dts = {'names':('xfield', 'yfield', 'chemcode', 'conc', 'StationId'), 'formats': (np.float32, np.float32, '|S256', '|S256', '|S256')}
@@ -185,14 +185,44 @@ for i in feature_info:
     polyFeatures.append(arcpy.Polygon(arcpy.Array(pointSet),spatialref))
 polygons = arcpy.CopyFeatures_management(polyFeatures, fileplace)
 
-# Set the local parameters
-inFeatures = polygons
-joinField = arcpy.Describe(inFeatures).OIDFieldName
-joinField2 = arcpy.Describe(resultstable).OIDFieldName
-fieldList = ["land_use", "land_cover"]
+# Create Join Field, adjust OBJECTID to align with FID (starts at 0)
+arcpy.AddField_management(polygons,"joinID","LONG",9,"","","joinID","NULLABLE")
+with arcpy.da.UpdateCursor(polygons,["joinID", arcpy.Describe(polygons).OIDFieldName]) as cursor:
+    for row in cursor:
+        row[0] = int(row[1])-1
+        cursor.updateRow(row)
 
-# Join two feature classes by the OID field and only carry 
-arcpy.JoinField_management (inFeatures, joinField, resultstable, joinField2)
+# Join two feature classes by the OID field and the joinID created from the FID
+joinField = "joinID"
+joinField2 = arcpy.Describe(resultstable).OIDFieldName
+arcpy.JoinField_management(polygons, joinField, resultstable, joinField2)
+
+# Add MEQ fields and calculations
+arcpy.AddField_management(polygons,"Na_meL","DOUBLE",9,"","","Na_meL","NULLABLE")
+arcpy.AddField_management(polygons,"K_meL","DOUBLE",9,"","","K_meL","NULLABLE")
+arcpy.AddField_management(polygons,"Mg_meL","DOUBLE",9,"","","Mg_meL","NULLABLE")
+arcpy.AddField_management(polygons,"Ca_meL","DOUBLE",9,"","","Ca_meL","NULLABLE")
+arcpy.AddField_management(polygons,"Cl_meL","DOUBLE",9,"","","Cl_meL","NULLABLE")
+arcpy.AddField_management(polygons,"HCO3_meL","DOUBLE",9,"","","HCO3_meL","NULLABLE")
+arcpy.AddField_management(polygons,"CO3_meL","DOUBLE",9,"","","CO3_meL","NULLABLE")
+arcpy.AddField_management(polygons,"SO4_meL","DOUBLE",9,"","","SO4_meL","NULLABLE")
+arcpy.AddField_management(polygons,"Bal","DOUBLE",9,"","","Balance","NULLABLE")
+
+fields = ["Na", "K", "Mg", "Ca", "Cl", "HCO3", "CO3", "SO4", "Na_meL", "K_meL", "Mg_meL", "Ca_meL", "Cl_meL", "HCO3_meL", "CO3_meL", "SO4_meL", "Bal"]
+d = {'Ca':0.04990269, 'Mg':0.082287595, 'Na':0.043497608, 'K':0.02557656, 'Cl':0.028206596, 'HCO3':0.016388838, 'CO3':0.033328223, 'SO4':0.020833333, 'NO2':0.021736513, 'NO3':0.016129032}
+with arcpy.da.UpdateCursor(polygons,fields) as cursor:
+    for row in cursor:
+        row[8] = row[0]*d['Na']
+        row[9] = row[1]*d['K']
+        row[10] = row[2]*d['Mg']
+        row[11] = row[3]*d['Ca']
+        row[12] = row[4]*d['Cl']
+        row[13] = row[5]*d['HCO3']
+        row[14] = row[6]*d['CO3']
+        row[15] = row[7]*d['SO4']
+        row[16] = ((row[0])*d['Na'] + (row[1])*d['K'] + (row[2])*d['Mg'] + (row[3])*d['Ca']) - ((row[4])*d['Cl'] + (row[5])*d['HCO3'] + (row[6])*d['CO3'] + (row[7])*d['SO4']) 
+        cursor.updateRow(row)
+
 
 
 # create a reference bar for the diagrams
@@ -219,6 +249,19 @@ for i in lineFeatureHor_info:
 linespath = os.path.dirname(os.path.abspath(fileplace)) + '\\' + getfilename(fileplace) + "_lines" + os.path.splitext(fileplace)[1]
 polylines = arcpy.CopyFeatures_management(lineFeatures, linespath)
 
+## Create Label Points for Labeling the Scale Bar
+#lab5 = [[x[i]+ np.max(x)/*mh, 1.1*10*mv + float(y[i]), 5] for i in range(nosamp)]
+#lab4 = [[x[i]+ 4*mh, 1.1*10*mv + float(y[i]), 4] for i in range(nosamp)]
+#lab3 = [[x[i]+ 3*mh, 1.1*10*mv + float(y[i]), 3] for i in range(nosamp)]
+#lab2 = [[x[i]+ 2*mh, 1.1*10*mv + float(y[i]), 2] for i in range(nosamp)]
+#lab1 = [[x[i]+ 1*mh, 1.1*10*mv + float(y[i]), 1] for i in range(nosamp)]
+#lab0 =  [[x[i]-0*mh, 1.1*10*mv + float(y[i]), 0] for i in range(nosamp)]
+#lab1n = [[x[i]-1*mh, 1.1*10*mv + float(y[i]), 1] for i in range(nosamp)]
+#lab2n = [[x[i]-2*mh, 1.1*10*mv + float(y[i]), 2] for i in range(nosamp)]
+#lab3n = [[x[i]-3*mh, 1.1*10*mv + float(y[i]), 3] for i in range(nosamp)]
+#lab4n = [[x[i]-4*mh, 1.1*10*mv + float(y[i]), 4] for i in range(nosamp)]
+#lab5n = [[x[i]-5*mh, 1.1*10*mv + float(y[i]), 5] for i in range(nosamp)]
+
 
 # Create Label Points for Labeling the Scale Bar
 lab5 = [[x[i]+ 5*mh, 1.1*10*mv + float(y[i]), 5] for i in range(nosamp)]
@@ -227,11 +270,11 @@ lab3 = [[x[i]+ 3*mh, 1.1*10*mv + float(y[i]), 3] for i in range(nosamp)]
 lab2 = [[x[i]+ 2*mh, 1.1*10*mv + float(y[i]), 2] for i in range(nosamp)]
 lab1 = [[x[i]+ 1*mh, 1.1*10*mv + float(y[i]), 1] for i in range(nosamp)]
 lab0 =  [[x[i]-0*mh, 1.1*10*mv + float(y[i]), 0] for i in range(nosamp)]
-lab1n = [[x[i]-1*mh, 1.1*10*mv + float(y[i]), -1] for i in range(nosamp)]
-lab2n = [[x[i]-2*mh, 1.1*10*mv + float(y[i]), -2] for i in range(nosamp)]
-lab3n = [[x[i]-3*mh, 1.1*10*mv + float(y[i]), -3] for i in range(nosamp)]
-lab4n = [[x[i]-4*mh, 1.1*10*mv + float(y[i]), -4] for i in range(nosamp)]
-lab5n = [[x[i]-5*mh, 1.1*10*mv + float(y[i]), -5] for i in range(nosamp)]
+lab1n = [[x[i]-1*mh, 1.1*10*mv + float(y[i]), 1] for i in range(nosamp)]
+lab2n = [[x[i]-2*mh, 1.1*10*mv + float(y[i]), 2] for i in range(nosamp)]
+lab3n = [[x[i]-3*mh, 1.1*10*mv + float(y[i]), 3] for i in range(nosamp)]
+lab4n = [[x[i]-4*mh, 1.1*10*mv + float(y[i]), 4] for i in range(nosamp)]
+lab5n = [[x[i]-5*mh, 1.1*10*mv + float(y[i]), 5] for i in range(nosamp)]
 
 barLabels = [[lab5[i], lab4[i], lab3[i], lab2[i], lab1[i], lab0[i], lab1n[i], lab2n[i], lab3n[i], lab4n[i], lab5n[i]] for i in range(nosamp)]
 
