@@ -27,8 +27,8 @@ def getfilename(path):
 resultstable = arcpy.GetParameterAsText(0)
 meq = arcpy.GetParameterAsText(1)
 stationidfield = arcpy.GetParameterAsText(2)
-mv = int(arcpy.GetParameterAsText(3)) #vertical multiplier
-mh = int(arcpy.GetParameterAsText(4)) #horizontal multiplier
+mv = float(arcpy.GetParameterAsText(3)) #vertical multiplier
+mh = float(arcpy.GetParameterAsText(4)) #horizontal multiplier
 fileplace = arcpy.GetParameterAsText(5)
 
 fieldnames = [u'Na', u'K', u'Ca', u'Mg', u'Cl', u'HCO3', u'CO3', u'SO4']
@@ -206,12 +206,13 @@ arcpy.AddField_management(polygons,"Cl_meL","DOUBLE",9,"","","Cl_meL","NULLABLE"
 arcpy.AddField_management(polygons,"HCO3_meL","DOUBLE",9,"","","HCO3_meL","NULLABLE")
 arcpy.AddField_management(polygons,"CO3_meL","DOUBLE",9,"","","CO3_meL","NULLABLE")
 arcpy.AddField_management(polygons,"SO4_meL","DOUBLE",9,"","","SO4_meL","NULLABLE")
-arcpy.AddField_management(polygons,"Bal","DOUBLE",9,"","","Balance","NULLABLE")
+arcpy.AddField_management(polygons,"ChgBal","DOUBLE",9,"","","Balance","NULLABLE")
 
-fields = ["Na", "K", "Mg", "Ca", "Cl", "HCO3", "CO3", "SO4", "Na_meL", "K_meL", "Mg_meL", "Ca_meL", "Cl_meL", "HCO3_meL", "CO3_meL", "SO4_meL", "Bal"]
+fields = ["Na", "K", "Mg", "Ca", "Cl", "HCO3", "CO3", "SO4", "Na_meL", "K_meL", "Mg_meL", "Ca_meL", "Cl_meL", "HCO3_meL", "CO3_meL", "SO4_meL", "ChgBal"]
 d = {'Ca':0.04990269, 'Mg':0.082287595, 'Na':0.043497608, 'K':0.02557656, 'Cl':0.028206596, 'HCO3':0.016388838, 'CO3':0.033328223, 'SO4':0.020833333, 'NO2':0.021736513, 'NO3':0.016129032}
 with arcpy.da.UpdateCursor(polygons,fields) as cursor:
     for row in cursor:
+        if row is not None:        
         row[8] = row[0]*d['Na']
         row[9] = row[1]*d['K']
         row[10] = row[2]*d['Mg']
