@@ -185,15 +185,16 @@ for i in feature_info:
     polyFeatures.append(arcpy.Polygon(arcpy.Array(pointSet),spatialref))
 polygons = arcpy.CopyFeatures_management(polyFeatures, fileplace)
 
-# Create Join Field, adjust OBJECTID to align with FID (starts at 0)
-arcpy.AddField_management(polygons,"joinID","LONG",9,"","","joinID","NULLABLE")
-with arcpy.da.UpdateCursor(polygons,["joinID", arcpy.Describe(polygons).OIDFieldName]) as cursor:
-    for row in cursor:
-        row[0] = int(row[1])-1
-        cursor.updateRow(row)
+## Create Join Field, adjust OBJECTID to align with FID (starts at 0)
+#arcpy.AddField_management(polygons,"joinID","LONG",9,"","","joinID","NULLABLE")
+#with arcpy.da.UpdateCursor(polygons,["joinID", arcpy.Describe(polygons).OIDFieldName]) as cursor:
+#    for row in cursor:
+#        row[0] = int(row[1])-1
+#        cursor.updateRow(row)
+#joinField = "joinID"
 
 # Join two feature classes by the OID field and the joinID created from the FID
-joinField = "joinID"
+joinField = arcpy.Describe(polygons).OIDFieldName
 joinField2 = arcpy.Describe(resultstable).OIDFieldName
 arcpy.JoinField_management(polygons, joinField, resultstable, joinField2)
 
