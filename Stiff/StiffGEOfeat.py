@@ -31,6 +31,8 @@ mv = float(arcpy.GetParameterAsText(3)) #vertical multiplier
 mh = float(arcpy.GetParameterAsText(4)) #horizontal multiplier
 fileplace = arcpy.GetParameterAsText(5)
 
+
+
 fieldnames = [u'Na', u'K', u'Ca', u'Mg', u'Cl', u'HCO3', u'CO3', u'SO4']
 
 fieldlist = [f.name for f in arcpy.ListFields(resultstable)] #get fields from input table
@@ -187,9 +189,18 @@ polygons = arcpy.CopyFeatures_management(polyFeatures, fileplace)
 
 # Create Join Field, adjust OBJECTID to align with FID (starts at 0)
 arcpy.AddField_management(polygons,"joinID","LONG",9,"","","joinID","NULLABLE")
+
+desc = arcpy.Describe(polygons)
+arcpy.AddMessage(desc.dataType)
+arcpy.AddMessage(desc.extension)
+
+
 with arcpy.da.UpdateCursor(polygons,["joinID", arcpy.Describe(polygons).OIDFieldName]) as cursor:
     for row in cursor:
-        row[0] = int(row[1])-1
+        if desc.extension == "shp":        
+            row[0] = int(row[1])
+        else:
+            row[0] = int(row[1])-1
         cursor.updateRow(row)
 joinField = "joinID"
 
