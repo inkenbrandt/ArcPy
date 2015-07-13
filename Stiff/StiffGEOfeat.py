@@ -185,16 +185,16 @@ for i in feature_info:
     polyFeatures.append(arcpy.Polygon(arcpy.Array(pointSet),spatialref))
 polygons = arcpy.CopyFeatures_management(polyFeatures, fileplace)
 
-## Create Join Field, adjust OBJECTID to align with FID (starts at 0)
-#arcpy.AddField_management(polygons,"joinID","LONG",9,"","","joinID","NULLABLE")
-#with arcpy.da.UpdateCursor(polygons,["joinID", arcpy.Describe(polygons).OIDFieldName]) as cursor:
-#    for row in cursor:
-#        row[0] = int(row[1])-1
-#        cursor.updateRow(row)
-#joinField = "joinID"
+# Create Join Field, adjust OBJECTID to align with FID (starts at 0)
+arcpy.AddField_management(polygons,"joinID","LONG",9,"","","joinID","NULLABLE")
+with arcpy.da.UpdateCursor(polygons,["joinID", arcpy.Describe(polygons).OIDFieldName]) as cursor:
+    for row in cursor:
+        row[0] = int(row[1])-1
+        cursor.updateRow(row)
+joinField = "joinID"
 
 # Join two feature classes by the OID field and the joinID created from the FID
-joinField = arcpy.Describe(polygons).OIDFieldName
+#joinField = arcpy.Describe(polygons).OIDFieldName
 joinField2 = arcpy.Describe(resultstable).OIDFieldName
 arcpy.JoinField_management(polygons, joinField, resultstable, joinField2)
 
@@ -214,15 +214,15 @@ d = {'Ca':0.04990269, 'Mg':0.082287595, 'Na':0.043497608, 'K':0.02557656, 'Cl':0
 with arcpy.da.UpdateCursor(polygons,fields) as cursor:
     for row in cursor:
         if row is not None:        
-        row[8] = row[0]*d['Na']
-        row[9] = row[1]*d['K']
-        row[10] = row[2]*d['Mg']
-        row[11] = row[3]*d['Ca']
-        row[12] = row[4]*d['Cl']
-        row[13] = row[5]*d['HCO3']
-        row[14] = row[6]*d['CO3']
-        row[15] = row[7]*d['SO4']
-        row[16] = ((row[0])*d['Na'] + (row[1])*d['K'] + (row[2])*d['Mg'] + (row[3])*d['Ca']) - ((row[4])*d['Cl'] + (row[5])*d['HCO3'] + (row[6])*d['CO3'] + (row[7])*d['SO4']) 
+            row[8] = row[0]*d['Na']
+            row[9] = row[1]*d['K']
+            row[10] = row[2]*d['Mg']
+            row[11] = row[3]*d['Ca']
+            row[12] = row[4]*d['Cl']
+            row[13] = row[5]*d['HCO3']
+            row[14] = row[6]*d['CO3']
+            row[15] = row[7]*d['SO4']
+            row[16] = ((row[0])*d['Na'] + (row[1])*d['K'] + (row[2])*d['Mg'] + (row[3])*d['Ca']) - ((row[4])*d['Cl'] + (row[5])*d['HCO3'] + (row[6])*d['CO3'] + (row[7])*d['SO4']) 
         cursor.updateRow(row)
 
 
