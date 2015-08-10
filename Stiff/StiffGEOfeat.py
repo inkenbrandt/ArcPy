@@ -165,7 +165,7 @@ inarray = np.rec.fromrecords(varlist, dtype=dts)
 pointspath = allpath + '\\' + getfilename(fileplace) + "_points" + os.path.splitext(fileplace)[1]
 
 
-temptab = arcpy.env.scratchGDB + os.path.sep + "temptab12"
+temptab = arcpy.env.scratchGDB + os.path.sep + "temptab15"
 templayer = arcpy.env.scratchGDB + os.path.sep + "templayers"
 
 
@@ -190,18 +190,21 @@ polygons = arcpy.CopyFeatures_management(polyFeatures, fileplace)
 # Create Join Field, adjust OBJECTID to align with FID (starts at 0)
 arcpy.AddField_management(polygons,"joinID","LONG",9,"","","joinID","NULLABLE")
 
-desc = arcpy.Describe(polygons)
+desc = arcpy.Describe(resultstable)
 arcpy.AddMessage(desc.dataType)
 arcpy.AddMessage(desc.extension)
-
+joinNum = arcpy.Describe(resultstable).OIDFieldName
 
 with arcpy.da.UpdateCursor(polygons,["joinID", arcpy.Describe(polygons).OIDFieldName]) as cursor:
-    for row in cursor:
+  
+    for row in cursor:          
+        arcpy.AddMessage(str(joinNum))
         if desc.extension == "shp":        
-            row[0] = int(row[1])
+            row[0] = int(row[1]-1)
         else:
-            row[0] = int(row[1])-1
-        cursor.updateRow(row)
+            row[0] = int(int(row[1]))
+            
+            cursor.updateRow(row)
 joinField = "joinID"
 
 # Join two feature classes by the OID field and the joinID created from the FID
@@ -220,20 +223,26 @@ arcpy.AddField_management(polygons,"CO3_meL","DOUBLE",9,"","","CO3_meL","NULLABL
 arcpy.AddField_management(polygons,"SO4_meL","DOUBLE",9,"","","SO4_meL","NULLABLE")
 arcpy.AddField_management(polygons,"ChgBal","DOUBLE",9,"","","Balance","NULLABLE")
 
-fields = ["Na", "K", "Mg", "Ca", "Cl", "HCO3", "CO3", "SO4", "Na_meL", "K_meL", "Mg_meL", "Ca_meL", "Cl_meL", "HCO3_meL", "CO3_meL", "SO4_meL", "ChgBal"]
+fieldnames = [u"Na", u"K", u"Mg", u"Ca", u"Cl", u"HCO3", u"CO3", u"SO4", u"Na_meL", u"K_meL", u"Mg_meL", u"Ca_meL", u"Cl_meL", u"HCO3_meL", u"CO3_meL", u"SO4_meL", u"ChgBal"]
 d = {'Ca':0.04990269, 'Mg':0.082287595, 'Na':0.043497608, 'K':0.02557656, 'Cl':0.028206596, 'HCO3':0.016388838, 'CO3':0.033328223, 'SO4':0.020833333, 'NO2':0.021736513, 'NO3':0.016129032}
-with arcpy.da.UpdateCursor(polygons,fields) as cursor:
+
+field_names = [f.name for f in arcpy.ListFields(polygons)]
+arcpy.AddMessage(field_names)
+arcpy.AddMessage(fieldnames)
+
+with arcpy.da.UpdateCursor(polygons,fieldnames) as cursor:
     for row in cursor:
-        if row is not None:        
-            row[8] = row[0]*d['Na']
-            row[9] = row[1]*d['K']
-            row[10] = row[2]*d['Mg']
-            row[11] = row[3]*d['Ca']
-            row[12] = row[4]*d['Cl']
-            row[13] = row[5]*d['HCO3']
-            row[14] = row[6]*d['CO3']
-            row[15] = row[7]*d['SO4']
-            row[16] = ((row[0])*d['Na'] + (row[1])*d['K'] + (row[2])*d['Mg'] + (row[3])*d['Ca']) - ((row[4])*d['Cl'] + (row[5])*d['HCO3'] + (row[6])*d['CO3'] + (row[7])*d['SO4']) 
+        if row is not None:
+            arcpy.AddMessage(type(row[0]))            
+            row[8] = float(row[0])*d['Na']
+            row[9] = float(row[1])*d['K']
+            row[10] = float(row[2])*d['Mg']
+            row[11] = float(row[3])*d['Ca']
+            row[12] = float(row[4])*d['Cl']
+            row[13] = float(row[5])*d['HCO3']
+            row[14] = float(row[6])*d['CO3']
+            row[15] = float(row[7])*d['SO4']
+            row[16] = (float(row[0])*d['Na'] + float(row[1])*d['K'] + float(row[2])*d['Mg'] + float(row[3])*d['Ca']) - (float(row[4])*d['Cl'] + float(row[5])*d['HCO3'] + float(row[6])*d['CO3'] + float(row[7])*d['SO4']) 
         cursor.updateRow(row)
 
 
