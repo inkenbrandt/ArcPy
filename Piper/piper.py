@@ -268,10 +268,17 @@ if len(Elev)<>0:
     cax = fig.add_axes([0.25,0.10,0.50,0.02])    
     cb1 = plt.colorbar(cax=cax, cmap=cmap, norm=cNorm, orientation='horizontal') #use_gridspec=True
     cb1.set_label(arcpy.GetParameterAsText(1),size=8)
-    plt.legend(s,b, loc='lower center', ncol=5, shadow=False, fancybox=True, bbox_to_anchor=(0.5, 0.6))
-
+    arcpy.AddMessage(s[0])    
+    if len(s)<1:    
+        pass
+    else:
+        plt.legend(b, loc='lower center', ncol=5, shadow=False, fancybox=True, bbox_to_anchor=(0.5, 0.6))
+    
 else:
-    plt.legend(s,b, loc='lower center', ncol=5, shadow=False, fancybox=True, bbox_to_anchor=(0.5, -0.4))
+    if len(s)<1:    
+        pass
+    else:
+        plt.legend(b, loc='lower center', ncol=5, shadow=False, fancybox=True, bbox_to_anchor=(0.5, 0.6))    
 
 
 
