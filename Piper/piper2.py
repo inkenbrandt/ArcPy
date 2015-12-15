@@ -26,6 +26,7 @@ import numpy as np
 from matplotlib.backends.backend_pdf import PdfPages
 from arcpy import env
 from matplotlib.lines import Line2D
+from collections import OrderedDict
 
 env.workspace = "CURRENT" 
 
@@ -53,15 +54,18 @@ except ValueError:
     pass
 
 
-try:
+try:      
     typField = arcpy.GetParameterAsText(3)
-    with arcpy.da.SearchCursor(resultstable,[typField]) as cursor:
+    with arcpy.da.SearchCursor(resultstable,[typField]) as cursor:                        
         for row in cursor:
-            typ.append(row[0])
-            
+            if row[0] > 0:
+                typ.append(row[0])                
+            else:
+                typ.append('Sample')
     stationtypes = np.unique(typ)            
-except ValueError:
-    pass
+except:
+    stationtypes = [''] 
+
 
 piperTitle = arcpy.GetParameterAsText(4)
 fileplace = arcpy.GetParameterAsText(5)
@@ -76,12 +80,12 @@ fieldlist = [f.name for f in arcpy.ListFields(resultstable)] #get fields from in
 # Create empty datasets for the missing parameters
 for field in fieldnames: #loop through each field
     if field not in fieldlist:
-        arcpy.AddMessage(field + 'not one of the columns, adding field' )
+        arcpy.AddMessage('WARNING! ' + field + ' not one of the columns, adding field' )
         arcpy.AddField_management(resultstable, field, "FLOAT", 6, "", "", field, "NULLABLE")
         with arcpy.da.UpdateCursor(resultstable,[field]) as cursor:
             for row in cursor:
-                row[0] = 0
-            cursor.updateRow(row)
+                row[0] = '0'
+                cursor.updateRow(row)
 
 # Convert values in table fields to numpy arrays
 # populate lists with values from the active table
@@ -98,14 +102,6 @@ with arcpy.da.SearchCursor(resultstable,['Na', 'K', 'Ca', 'Mg', 'Cl', 'HCO3', 'C
             else:
                 constItems[i].append(row[i])
 
-#        Na.append(row[0])
-#        K.append(row[1])
-#        Ca.append(row[2])
-#        Mg.append(row[3])
-#        Cl.append(row[4])
-#        HCO3.append(row[5])
-#        CO3.append(row[6])
-#        SO4.append(row[7])
 
 x, y = [],[]
 with arcpy.da.SearchCursor(resultstable, "SHAPE@XY") as cursor:
@@ -150,12 +146,12 @@ EC = [Anions[i]+Cations[i] for i in range(nosamp)]
 for i in EC:
     arcpy.AddMessage('Anions + Cations = ' +str(i))
 
-CaEC = [100*Ca[i]/(EC[i]) for i in range(nosamp)]
-MgEC = [100*Mg[i]/(EC[i]) for i in range(nosamp)]
-ClEC = [100*Cl[i]/(EC[i]) for i in range(nosamp)]
-SO4EC = [100*SO4[i]/(EC[i]) for i in range(nosamp)]
-NaKEC = [100*NaK[i]/(EC[i]) for i in range(nosamp)]
-SO4ClEC = [100*(SO4[i]+Cl[i])/(EC[i]) for i in range(nosamp)]
+CaEC = [100*Ca[i]/(Cations[i]) for i in range(nosamp)]
+MgEC = [100*Mg[i]/(Cations[i]) for i in range(nosamp)]
+ClEC = [100*Cl[i]/(Anions[i]) for i in range(nosamp)]
+SO4EC = [100*SO4[i]/(Anions[i]) for i in range(nosamp)]
+NaKEC = [100*NaK[i]/(Cations[i]) for i in range(nosamp)]
+SO4ClEC = [100*(SO4[i]+Cl[i])/(Anions[i]) for i in range(nosamp)]
 
 # Change default settings for figures
 plt.rc('savefig', dpi = 300)
@@ -183,7 +179,7 @@ cNorm  = plt.Normalize(vmin=min(vart), vmax=max(vart))
 cmap = plt.cm.coolwarm
 pdf = PdfPages(fileplace)
 
-mrkrSymbl = ['v', '^', '+', 's', ',', '.', 'o', '*', 'v', '^', '+', 's', ',', '.', 'o', '*','v', '^', '+', 's', ',', '.', 'o', '*', 'v', '^', '+', 's', ',', '.', 'o', '*']
+mrkrSymbl = ['v', '^', '+', 's', '.', 'o', '*', 'v', '^', '+', 's', ',', '.', 'o', '*','v', '^', '+', 's', ',', '.', 'o', '*', 'v', '^', '+', 's', ',', '.', 'o', '*']
 
 # count variable for legend (n)
 nstatTypes = [typ.count(i) for i in stationtypes]
@@ -210,7 +206,7 @@ if len(typ) > 0:
     for j in range(len(typ)):    
         ax1.scatter(CaEC[j], MgEC[j], c=vart[j], cmap= cmap, norm = cNorm, marker=typdict[typ[j]])
 else:
-    ax1.scatter(CaEC, MgEC, c=vart[i], cmap= cmap, norm = cNorm)
+    ax1.scatter(CaEC, MgEC, c=vart, cmap= cmap, norm = cNorm)
 
 ax1.set_xlim(0,100)
 ax1.set_ylim(0,100)
@@ -234,9 +230,12 @@ ax.text(5,65, 'SO4 type')
 if len(typ) > 0:
     for j in range(len(typ)):
         labs = typ[j] + " n= " + nstatTypesDict[typ[j]]
-        s = ax.scatter(ClEC[j], SO4EC[j], c=vart[j], cmap=cmap, norm =cNorm, marker=typdict[typ[j]], label=labs)
+        if float(nstatTypesDict[typ[j]]) > 1:
+            s = ax.scatter(ClEC[j], SO4EC[j], c=vart[j], cmap=cmap, norm =cNorm, marker=typdict[typ[j]], label=labs)
+        else:
+            s = ax.scatter(ClEC[j], SO4EC[j], c=vart[j], cmap=cmap, norm =cNorm, marker=typdict[typ[j]], label=typ[j])
 else:
-    ax.scatter(ClEC, SO4EC, c=vart, cmap=cmap, norm =cNorm, label='Sample')
+    s = ax.scatter(ClEC, SO4EC, c=vart, cmap=cmap, norm =cNorm, label='Sample')
 
 ax.set_xlim(0,100)
 ax.set_ylim(0,100)
@@ -282,10 +281,10 @@ plt.subplots_adjust(left=0.05, bottom=0.35, right=0.95, top=0.90, wspace=0.4, hs
 # Add colorbar below legend
 #[left, bottom, width, height] where all quantities are in fractions of figure width and height
 
-from collections import OrderedDict
 
 
-if len(Elev)<>0:
+
+if len(Elev)>0:
     cax = fig.add_axes([0.25,0.10,0.50,0.02])    
     cb1 = plt.colorbar(s, cax=cax, cmap=cmap, norm=cNorm, orientation='horizontal') #use_gridspec=True
     cb1.set_label(arcpy.GetParameterAsText(2),size=8) 
