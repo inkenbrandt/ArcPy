@@ -20,15 +20,15 @@ def getfilename(path):
 
 points = "sample"
 buff = 0.05
-outFeatureClass = "fishndetadd"
+outFeatureClass = "fishfndekmtadd"
 # Number of rows and columns together with origin and opposite corner 
 # determine the size of each cell 
 numRows =  '50'
 numColumns = '50'
 S = 0.005
 T = 10000
-t = 10
-Q = 100
+t = 100
+Q = 100000
 #Inputs
 #points = arcpy.GetParameterAsText(0)
 #Q = arcpy.GetParameterAsText(1)
@@ -102,18 +102,24 @@ for row in arcpy.da.SearchCursor(grid_points, ["SHAPE@", "SHAPE@XY", "SHAPE@TRUE
     gx.append(row[1][0])
     gy.append(row[1][1])    
 
-h = []
-u = []
+uval = {}
 f = {}
+hval = {}
 for j in range(len(x)):
     d = []    
+    h = []
+    u = []
     for i in range(len(gx)):
         
         d.append(np.sqrt(np.power((x[j]-gx[i]),2)+np.power((y[j]-gy[i]),2)))
         f[j] = d        
         u.append((np.power(d[i],2)*S)/(4*T*t))
-        #h.append((Q/(4*np.pi()*T))*(-0.5772-np.log(u[i])+u[i]-(u[i]**2/(2*np.math.factorial(2)))+(u[i]**3/(3*np.math.factorial(3)))-(u[i]**4/(4*np.math.factorial(4)))))
-print(f[0][1])
+        uval[j] = u
+        qpart = (Q/(4.0*np.pi*T))
+        lnpart = (-0.5772-np.log(u[i])+u[i]-(np.power(u[i],2)/(2.0*np.math.factorial(2)))+(np.power(u[i],3)/(3*np.math.factorial(3)))-(np.power(u[i],4)/(4*np.math.factorial(4))))
+        h.append(qpart*lnpart)
+        hval[j] = h
+print(hval[0][1])
 print(len(f))
 # get xy from points
 # get centroid of point set from xy
