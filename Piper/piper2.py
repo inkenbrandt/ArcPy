@@ -27,6 +27,8 @@ from matplotlib.backends.backend_pdf import PdfPages
 from arcpy import env
 from matplotlib.lines import Line2D
 from collections import OrderedDict
+#import matplotlib as mpl
+#mpl.rcParams.update(mpl.rcParamsDefault)
 
 env.workspace = "CURRENT" 
 
@@ -141,6 +143,7 @@ else:
 Anions = [Cl[i]+HCO3[i]+CO3[i]+SO4[i] for i in range(nosamp)]
 Cations = [K[i]+Mg[i]+Na[i]+Ca[i] for i in range(nosamp)]
 EC = [Anions[i]+Cations[i] for i in range(nosamp)]
+BAL = [(Cations[i]-abs(Anions[i]))/(abs(Anions[i])+Cations[i]) for i in range(nosamp)]
 
 #Print Charge Balance
 for i in EC:
@@ -154,19 +157,20 @@ NaKEC = [100*NaK[i]/(Cations[i]) for i in range(nosamp)]
 SO4ClEC = [100*(SO4[i]+Cl[i])/(Anions[i]) for i in range(nosamp)]
 
 # Change default settings for figures
-plt.rc('savefig', dpi = 300)
+plt.rc('savefig', dpi = 400)
 plt.rc('xtick', labelsize = 10)
 plt.rc('ytick', labelsize = 10)
 plt.rc('font', size = 12)
 plt.rc('legend', fontsize = 12)
 plt.rc('figure', figsize = (14,5.5)) # defines size of Figure window orig (14,4.5)
+plt.rc('svg', fonttype = 'svgfont')
 
-markersize = 12
-linewidth = 2
+markSize = 30
+lineW = 0.5
 xtickpositions = np.linspace(0,100,6) # desired xtickpositions for graphs
 
 # Make Figure
-fig=plt.figure()
+fig = plt.figure()
 # add title
 fig.suptitle(piperTitle, x=0.20,y=.98, fontsize=14 )
 # Colormap and Saving Options for Figure
@@ -177,7 +181,7 @@ else:
     vart = [1]*nosamp
 cNorm  = plt.Normalize(vmin=min(vart), vmax=max(vart))
 cmap = plt.cm.coolwarm
-pdf = PdfPages(fileplace)
+#pdf = PdfPages(fileplace)
 
 mrkrSymbl = ['v', '^', '+', 's', '.', 'o', '*', 'v', '^', '+', 's', ',', '.', 'o', '*','v', '^', '+', 's', ',', '.', 'o', '*', 'v', '^', '+', 's', ',', '.', 'o', '*']
 
@@ -204,9 +208,9 @@ ax1.text(25,65, 'Mg type')
 
 if len(typ) > 0:
     for j in range(len(typ)):    
-        ax1.scatter(CaEC[j], MgEC[j], c=vart[j], cmap= cmap, norm = cNorm, marker=typdict[typ[j]])
+        ax1.scatter(CaEC[j], MgEC[j], s=markSize, c=vart[j], cmap= cmap, norm = cNorm, marker=typdict[typ[j]], linewidths = lineW)
 else:
-    ax1.scatter(CaEC, MgEC, c=vart, cmap= cmap, norm = cNorm)
+    ax1.scatter(CaEC, MgEC, s=markSize, c=vart, cmap= cmap, norm = cNorm, linewidths = lineW)
 
 ax1.set_xlim(0,100)
 ax1.set_ylim(0,100)
@@ -231,17 +235,16 @@ if len(typ) > 0:
     for j in range(len(typ)):
         labs = typ[j] + " n= " + nstatTypesDict[typ[j]]
         if float(nstatTypesDict[typ[j]]) > 1:
-            s = ax.scatter(ClEC[j], SO4EC[j], c=vart[j], cmap=cmap, norm =cNorm, marker=typdict[typ[j]], label=labs)
+            s = ax.scatter(ClEC[j], SO4EC[j], s=markSize, c=vart[j], cmap=cmap, norm =cNorm, marker=typdict[typ[j]], label=labs, linewidths = lineW)
         else:
-            s = ax.scatter(ClEC[j], SO4EC[j], c=vart[j], cmap=cmap, norm =cNorm, marker=typdict[typ[j]], label=typ[j])
+            s = ax.scatter(ClEC[j], SO4EC[j], s=markSize, c=vart[j], cmap=cmap, norm =cNorm, marker=typdict[typ[j]], label=typ[j], linewidths = lineW)
 else:
-    s = ax.scatter(ClEC, SO4EC, c=vart, cmap=cmap, norm =cNorm, label='Sample')
+    s = ax.scatter(ClEC, SO4EC, s=markSize, c=vart, cmap=cmap, norm =cNorm, label='Sample', linewidths = lineW)
 
 ax.set_xlim(0,100)
 ax.set_ylim(0,100)
 ax.set_xlabel('Cl (% meq) =>')
 ax.set_ylabel('SO4 (% meq) =>')
-
 
 # CATIONS AND ANIONS COMBINED ---------------------------------------------------------------
 # 2 lines below needed to create 2nd y-axis (ax1b) for first subplot
@@ -257,11 +260,10 @@ ax2.plot([90, 90],[0, 100],'k--')
 
 if len(typ) > 0:
     for j in range(len(typ)):    
-        ax2.scatter(NaKEC[j], SO4ClEC[j], c=vart[j], cmap=cmap, norm =cNorm, marker=typdict[typ[j]])
+        ax2.scatter(NaKEC[j], SO4ClEC[j], s=markSize, c=vart[j], cmap=cmap, norm =cNorm, marker=typdict[typ[j]], linewidths = lineW)
 else:
-    ax2.scatter(NaKEC, SO4ClEC, c=vart, cmap=cmap, norm =cNorm)
+    ax2.scatter(NaKEC, SO4ClEC, s=markSize, c=vart, cmap=cmap, norm =cNorm, linewidths = lineW)
 
-        
 ax2.set_xlim(0,100)
 ax2.set_ylim(0,100)
 ax2.set_xlabel('Na+K (% meq) =>')
@@ -282,8 +284,6 @@ plt.subplots_adjust(left=0.05, bottom=0.35, right=0.95, top=0.90, wspace=0.4, hs
 #[left, bottom, width, height] where all quantities are in fractions of figure width and height
 
 
-
-
 if len(Elev)>0:
     cax = fig.add_axes([0.25,0.10,0.50,0.02])    
     cb1 = plt.colorbar(s, cax=cax, cmap=cmap, norm=cNorm, orientation='horizontal') #use_gridspec=True
@@ -295,7 +295,8 @@ if len(typ)>0:
 
     plt.legend(by_label.values(), by_label.keys(), loc='lower center', ncol=5, shadow=False, fancybox=True, bbox_to_anchor=(0.5, 0.6), scatterpoints=1)
 
-pdf.savefig()
-pdf.close()
-
+#pdf.savefig()
+#pdf.close()
+plt.savefig(fileplace)
+plt.close()
 print "done"

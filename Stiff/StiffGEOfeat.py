@@ -101,6 +101,7 @@ else:
 Anions = [Cl[i]+HCO3[i]+CO3[i]+SO4[i] for i in range(nosamp)]
 Cations = [K[i]+Mg[i]+Na[i]+Ca[i] for i in range(nosamp)]
 EC = [Anions[i]+Cations[i] for i in range(nosamp)]
+BAL = [(Cations[i]-abs(Anions[i]))/(abs(Anions[i])+Cations[i]) for i in range(nosamp)]
 
 # Generate x coordinates for stiff leaders based on concentration of major ions
 ## Cations
@@ -165,7 +166,7 @@ inarray = np.rec.fromrecords(varlist, dtype=dts)
 pointspath = allpath + '\\' + getfilename(fileplace) + "_points" + os.path.splitext(fileplace)[1]
 
 
-temptab = arcpy.env.scratchGDB + os.path.sep + "temptab15"
+temptab = arcpy.env.scratchGDB + os.path.sep + "temptab16"
 templayer = arcpy.env.scratchGDB + os.path.sep + "templayers"
 
 
@@ -226,7 +227,7 @@ arcpy.AddField_management(polygons,"ChgBal","DOUBLE",9,"","","Balance","NULLABLE
 fieldnames = [u"Na", u"K", u"Mg", u"Ca", u"Cl", u"HCO3", u"CO3", u"SO4", u"Na_meL", u"K_meL", u"Mg_meL", u"Ca_meL", u"Cl_meL", u"HCO3_meL", u"CO3_meL", u"SO4_meL", u"ChgBal"]
 d = {'Ca':0.04990269, 'Mg':0.082287595, 'Na':0.043497608, 'K':0.02557656, 'Cl':0.028206596, 'HCO3':0.016388838, 'CO3':0.033328223, 'SO4':0.020833333, 'NO2':0.021736513, 'NO3':0.016129032}
 
-field_names = [f.name for f in arcpy.ListFields(polygons)]
+field_names = [fn.name for fn in arcpy.ListFields(polygons)]
 arcpy.AddMessage(field_names)
 arcpy.AddMessage(fieldnames)
 
