@@ -11,39 +11,47 @@ import arcpy
 from arcpy import env
 #import math
 
-env.workspace = "M:\GIS\SnakeValley.gdb"#"CURRENT" #Set workspace as open map
+#"CURRENT" #Set workspace as open map
 
-#Functions 
-def getfilename(path):
-    # this function extracts the file name without file path or extension
-    return path.split('\\').pop().split('/').pop().rsplit('.', 1)[0]
-
-points = "sample"
-buff = 0.05
-outFeatureClass = "fishfndekmtadd"
+#points = "sample"
+#buff = 0.05
+#outFeatureClass = "aatest3"
+#pumpfield = "Q"
+#
 # Number of rows and columns together with origin and opposite corner 
 # determine the size of each cell 
 numRows =  '50'
-numColumns = '50'
-S = 0.005
-T = 10000
-t = 100
-Q = 100000
+numColumns = numRows
+#S = 0.005
+#T = 10000
+#t = 100
 #Inputs
-#points = arcpy.GetParameterAsText(0)
-#Q = arcpy.GetParameterAsText(1)
-#t = float(arcpy.GetParameterAsText(2))
-#T = float(arcpy.GetParameterAsText(3)) #vertical multiplier
-#S = float(arcpy.GetParameterAsText(4)) #horizontal multiplier
-#buff = float(arcpy.GetParameterAsText(5))
-#fileplace = arcpy.GetParameterAsText(5)
+points = arcpy.GetParameterAsText(0)
+pumpfield = arcpy.GetParameterAsText(1)
+buff = float(arcpy.GetParameterAsText(2))
+t = float(arcpy.GetParameterAsText(3))
+T = float(arcpy.GetParameterAsText(4)) #vertical multiplier
+S = float(arcpy.GetParameterAsText(5)) #horizontal multiplier
+cellSize = float(arcpy.GetParameterAsText(6))
+fileplace = arcpy.GetParameterAsText(7)
+outraster = arcpy.GetParameterAsText(8)
+
+outFeatureClass = outraster + "points"
+wellidfield = arcpy.Describe(points).OIDFieldName
+
+env.workspace = fileplace
+
 
 x, y = [], []
+wellid = []
+pump = []
 
-for row in arcpy.da.SearchCursor(points, ["SHAPE@XY"]):
+for row in arcpy.da.SearchCursor(points, ["SHAPE@XY",wellidfield, pumpfield]):
     # Print x,y coordinates of each point feature
     x.append(row[0][0])
     y.append(row[0][1])    
+    wellid.append(row[1])
+    pump.append(row[2])
 
 
 desc = arcpy.Describe(points)
@@ -52,15 +60,10 @@ spatialref = desc.spatialReference
 meanx = np.average(x)
 meany = np.average(y)
 
-
-print(meanx)
-print(meany)
-
 miny = np.min(y)
 minx = np.min(x)
 maxy = np.max(y)
 maxx = np.max(x)
-
 
 # Set coordinate system of the output fishnet
 env.outputCoordinateSystem = spatialref
@@ -72,8 +75,6 @@ originCoordinate = str(minx-buff)+" "+str(miny-buff)
 # Set the orientation
 yAxisCoordinate = str(minx-buff)+" "+str(maxy+buff)
 
-print(yAxisCoordinate)
-print(originCoordinate)
 
 # Enter 0 for width and height - these values will be calcualted by the tool
 cellSizeWidth = '0'
@@ -94,42 +95,65 @@ arcpy.CreateFishnet_management(outFeatureClass, originCoordinate, yAxisCoordinat
 
 grid_points = outFeatureClass+"_label"
 
-gx, gy = [],[]
+oid, gx, gy = [],[],[]
 
-for row in arcpy.da.SearchCursor(grid_points, ["SHAPE@", "SHAPE@XY", "SHAPE@TRUECENTROID"]):
+grid_oid =arcpy.Describe(grid_points).OIDFieldName
+
+for row in arcpy.da.SearchCursor(grid_points, ["SHAPE@XY", grid_oid]):
     # Print x,y coordinates of each point feature
     #
-    gx.append(row[1][0])
-    gy.append(row[1][1])    
+    oid.append(row[1])
+    gx.append(row[0][0])
+    gy.append(row[0][1])    
 
-uval = {}
-f = {}
+
 hval = {}
-for j in range(len(x)):
-    d = []    
-    h = []
-    u = []
-    for i in range(len(gx)):
-        
-        d.append(np.sqrt(np.power((x[j]-gx[i]),2)+np.power((y[j]-gy[i]),2)))
-        f[j] = d        
-        u.append((np.power(d[i],2)*S)/(4*T*t))
-        uval[j] = u
-        qpart = (Q/(4.0*np.pi*T))
-        lnpart = (-0.5772-np.log(u[i])+u[i]-(np.power(u[i],2)/(2.0*np.math.factorial(2)))+(np.power(u[i],3)/(3*np.math.factorial(3)))-(np.power(u[i],4)/(4*np.math.factorial(4))))
-        h.append(qpart*lnpart)
-        hval[j] = h
-print(hval[0][1])
-print(len(f))
-# get xy from points
-# get centroid of point set from xy
-# get extent from proints
-# add buffer to extent and use for fishnet extent
-# create fishnet points from derived values
 
-# calculate distance from fishnet points to well points
-# use distance for each Thies calculation in well points
-# (Q/(4piT))*[-0.5772-ln(u)+u-(u^2/2*2!)+(u^3/3*3!)-(u^4/4*4!)]
-# create field in fishnet for each well point to designate drawdown from that point
-# create field in fishnet that is the sum of all drawdowns
-# interpolate fishnet points
+for j in range(len(x)):  
+    h = []
+    for i in range(len(gx)):
+        dist = np.sqrt(np.power((x[j]-gx[i]),2)+np.power((y[j]-gy[i]),2))      
+        u = (np.power(dist,2)*S)/(4*T*t)
+        qpart = (pump[j]/(4.0*np.pi*T))
+        lnpart = (-0.5772-np.log(u)+u-(np.power(u,2)/(2.0*np.math.factorial(2)))+(np.power(u,3)/(3*np.math.factorial(3)))-(np.power(u,4)/(4*np.math.factorial(4))))
+        h.append(qpart*lnpart)
+        hval[wellid[j]] = h
+
+alldraw = []
+for i in range(len(gx)):
+    sumdraw = 0    
+    for j in range(len(x)):
+        sumdraw = hval[wellid[j]][i] + sumdraw
+    alldraw.append(sumdraw)
+
+lines = [oid,gx,gy]
+typefields = [('idfield','<i4'),('long', '<f8'),('lat', '<f8')]
+
+
+for j in range(len(x)):
+    lines.append(hval[wellid[j]])
+    typefields.append(('dWl'+ str(wellid[j]), '<f8'))
+
+lines.append(alldraw)
+typefields.append(('alldraw','<f8'))
+hlines = np.transpose(lines)
+
+arrlines = []
+for i in range(len(hlines)):
+    arrlines.append(tuple(hlines[i]))
+    
+arr = np.asarray(arrlines,dtype=typefields)
+
+arcpy.da.ExtendTable(grid_points, grid_oid, arr, 'idfield')
+
+# Set local variables
+
+
+# Check out the ArcGIS Spatial Analyst extension license
+arcpy.CheckOutExtension("Spatial")
+
+# Execute NaturalNeighbor
+outNatNbr = arcpy.sa.NaturalNeighbor(grid_points, 'alldraw', cellSize)
+
+# Save the output 
+outNatNbr.save("drawdown")
