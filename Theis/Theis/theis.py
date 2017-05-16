@@ -7,6 +7,7 @@ Created on Wed Mar 16 16:00:30 2016
 
 import numpy as np
 import os
+import scipy.special
 import arcpy
 from arcpy import env
 #import math
@@ -20,7 +21,7 @@ from arcpy import env
 #
 # Number of rows and columns together with origin and opposite corner 
 # determine the size of each cell 
-numRows =  '50'
+numRows =  '150'
 numColumns = numRows
 #S = 0.005
 #T = 10000
@@ -76,9 +77,9 @@ originCoordinate = str(minx-buff)+" "+str(miny-buff)
 yAxisCoordinate = str(minx-buff)+" "+str(maxy+buff)
 
 
-# Enter 0 for width and height - these values will be calcualted by the tool
-cellSizeWidth = '0'
-cellSizeHeight = '0'
+# Enter 0 for width and height - these values will be calculated by the tool
+cellSizeWidth = '0'#str(cellSize*5) #'0'
+cellSizeHeight = '0'#str(cellSize*5) #'0'
 
 oppositeCoorner = str(maxx+buff)+" "+str(maxy+buff)
 
@@ -95,6 +96,14 @@ arcpy.CreateFishnet_management(outFeatureClass, originCoordinate, yAxisCoordinat
 
 grid_points = outFeatureClass+"_label"
 
+
+with arcpy.da.InsertCursor(grid_points, ["SHAPE@XY"]) as cursor:
+    # insert wells into grid
+    for row in arcpy.da.SearchCursor(points, ["SHAPE@XY"]):
+        xy = (row[0][0]+0.01,row[0][1]+0.01)
+        cursor.insertRow([xy])
+
+
 oid, gx, gy = [],[],[]
 
 grid_oid =arcpy.Describe(grid_points).OIDFieldName
@@ -107,16 +116,30 @@ for row in arcpy.da.SearchCursor(grid_points, ["SHAPE@XY", grid_oid]):
     gy.append(row[0][1])    
 
 
+
+
+
+# adapted from: https://github.com/Applied-Groundwater-Modeling-2nd-Ed/Chapter_3_problems-1
+def well_function(u):
+    return scipy.special.exp1(u)
+
+def theis(Q, T, S, r, t):
+    u = r ** 2 * S / 4. / T / t
+    s = Q / 4. / np.pi / T * well_function(u)
+    return s
+
+
 hval = {}
 
 for j in range(len(x)):  
     h = []
     for i in range(len(gx)):
-        dist = np.sqrt(np.power((x[j]-gx[i]),2)+np.power((y[j]-gy[i]),2))      
-        u = (np.power(dist,2)*S)/(4*T*t)
-        qpart = (pump[j]/(4.0*np.pi*T))
-        lnpart = (-0.5772-np.log(u)+u-(np.power(u,2)/(2.0*np.math.factorial(2)))+(np.power(u,3)/(3*np.math.factorial(3)))-(np.power(u,4)/(4*np.math.factorial(4))))
-        h.append(qpart*lnpart)
+        dist = np.sqrt(np.power((x[j]-gx[i]),2)+np.power((y[j]-gy[i]),2))
+#        u = (np.power(dist,2)*S)/(4*T*t)
+#        qpart = (pump[j]/(4.0*np.pi*T))
+#        lnpart = (-0.5772-np.log(u)+u-(np.power(u,2)/(2.0*np.math.factorial(2)))+(np.power(u,3)/(3*np.math.factorial(3)))-(np.power(u,4)/(4*np.math.factorial(4))))
+
+        h.append(theis(pump[j],T,S,dist,t))
         hval[wellid[j]] = h
 
 alldraw = []
@@ -156,4 +179,4 @@ arcpy.CheckOutExtension("Spatial")
 outNatNbr = arcpy.sa.NaturalNeighbor(grid_points, 'alldraw', cellSize)
 
 # Save the output 
-outNatNbr.save("drawdown")
+outNatNbr.save(outraster)
